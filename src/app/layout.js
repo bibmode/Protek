@@ -11,6 +11,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/icon.ico" sizes="any" />
+        <title>Protek</title>
+      </head>
       <body className={`bg-white min-h-screen ${inter.className}`}>
         {children}
       </body>
