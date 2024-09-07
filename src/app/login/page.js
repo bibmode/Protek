@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "/utils/supabase/client";
+import { Supabase } from "/utils/supabase/client";
 import Image from "next/image";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -46,28 +46,31 @@ export default function Login() {
     }
 
     try {
-      const { data: tellerData, error: tellerError } = await supabase
-        .from("tellers")
+      // Authenticate user by querying the `tellers` table
+      const { data: tellerData, error: tellerError } = await Supabase.from(
+        "tellers"
+      )
         .select("id, email, passKey")
         .eq("email", email)
         .single();
 
-      if (tellerError) {
-        console.error("Teller error:", tellerError);
-        throw new Error("Invalid Credentials!");
-      }
-
-      if (tellerData && tellerData.passKey === passKey) {
-        toast.success("Login successful!", {
-          position: "top-right",
-        });
-        localStorage.setItem("tellerId", tellerData.id);
-        setTimeout(() => {
-          router.push("/");
-        }, 1500);
-      } else {
+      if (tellerError || !tellerData || tellerData.passKey !== passKey) {
         throw new Error("Invalid email or passKey!");
       }
+
+      // Set a cookie with a 12-hour expiration
+      const expirationDate = new Date();
+      expirationDate.setTime(expirationDate.getTime() + 12 * 60 * 60 * 1000); // 12 hours in milliseconds
+      const expires = `expires=${expirationDate.toUTCString()}`;
+
+      document.cookie = `tellerId=${tellerData.id}; path=/; ${expires}; Secure; HttpOnly`;
+
+      toast.success("Login successful!", {
+        position: "top-right",
+      });
+      setTimeout(() => {
+        router.push("/");
+      }, 1500);
     } catch (error) {
       console.error("Login error:", error);
       toast.error(error.message, {

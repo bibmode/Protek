@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { FaSignOutAlt } from "react-icons/fa";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { supabase } from "/utils/supabase/client"; // Adjust this import path as needed
+import { useRouter } from "next/navigation"; // Use 'next/navigation' here
+import { Supabase } from "/utils/supabase/client"; // Adjust this import path as needed
 import { useState } from "react";
-import { useAuthCheck } from "/hooks/useAuthCheck";
 
 const Navbar = () => {
   const router = useRouter();
@@ -16,7 +15,7 @@ const Navbar = () => {
     setIsLoggingOut(true);
     try {
       // Sign out from Supabase
-      const { error } = await supabase.auth.signOut();
+      const { error } = await Supabase.auth.signOut();
       if (error) throw error;
 
       // Clear any local storage items
@@ -37,10 +36,20 @@ const Navbar = () => {
       <div className="flex w-full justify-between items-center text-sm p-2 mx-7">
         <p className="mr-4 text-2xl font-bold">PROTEK</p>
         <div className="flex justify-between w-[600px]">
-          <Link className="py-2" href="/">
+          <Link
+            className={`py-2 ${
+              router.asPath === "/" ? "font-semibold text-2xl" : ""
+            }`}
+            href="/"
+          >
             Dashboard
           </Link>
-          <Link className="py-2" href="/lots">
+          <Link
+            className={`py-2 ${
+              router.asPath === "/lots" ? "font-semibold text-2xl" : ""
+            }`}
+            href="/lots"
+          >
             Parking Lots
           </Link>
           <p className="py-2">History</p>
