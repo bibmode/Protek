@@ -74,9 +74,7 @@ const VehiclesList = () => {
       {vehicles.map((vehicle, index) => (
         <div
           key={index}
-          className={`grid grid-cols-4 gap-2 px-4 py-[0.8rem] text-[0.7rem] ${
-            index % 2 === 0 ? "pt-1" : ""
-          }`}
+          className={`grid grid-cols-4 gap-2 px-4 py-[0.8rem] text-[0.7rem] pt-1`}
         >
           <p className="pl-3">{vehicle.type}</p>
           <p className="text-center">{vehicle.quantity}</p>

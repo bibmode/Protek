@@ -34,6 +34,8 @@ import {
   endOfMonth,
   subMonths,
   subWeeks,
+  startOfYear,
+  endOfYear,
 } from "date-fns";
 import LatestPayments from "./components/LatestPayments";
 import VehiclesList from "./components/VehiclesList";
@@ -53,6 +55,7 @@ export default function Home() {
     Array(6).fill(0)
   );
   const [totalCheckOuts, setTotalCheckOuts] = useState(Array(6).fill(0));
+  const [latestPayments, setLatestPayments] = useState([]);
 
   const handleDateChange = (date) => {
     setStartDate(date);
@@ -357,7 +360,6 @@ export default function Home() {
           })
             .map((date) => format(date, "yyyy"))
             .slice(-6);
-          console.log("Yearly Date Range:", dateRange);
           break;
 
         case "monthly":
@@ -367,7 +369,6 @@ export default function Home() {
           })
             .map((date) => format(date, "yyyy-MM"))
             .slice(-6);
-          console.log("Monthly Date Range:", dateRange);
           break;
 
         case "daily":
@@ -377,7 +378,6 @@ export default function Home() {
           })
             .map((date) => format(date, "yyyy-MM-dd"))
             .slice(-6);
-          console.log("Daily Date Range:", dateRange);
           break;
 
         case "weekly":
@@ -393,7 +393,6 @@ export default function Home() {
               end: format(endOfWeek(date, { weekStartsOn: 0 }), "yyyy-MM-dd"),
             }))
             .slice(-6);
-          console.log("Weekly Date Range:", dateRange);
           break;
 
         default:
@@ -403,7 +402,6 @@ export default function Home() {
           })
             .map((date) => format(date, "yyyy-MM"))
             .slice(-6);
-          console.log("Default (Monthly) Date Range:", dateRange);
           break;
       }
 
@@ -477,11 +475,6 @@ export default function Home() {
           }
         });
       });
-
-      console.log(
-        `Total Vehicles In Custody (${selectedDateType}):`,
-        totalVehiclesInCustody
-      );
 
       setTotalVehiclesInCustody(totalVehiclesInCustody);
     } catch (error) {
@@ -627,9 +620,90 @@ export default function Home() {
     }
   };
 
+  const fetchLatestPayments = async () => {
+    try {
+      const dateType = selectedDateType || "monthly";
+
+      // Use the provided startDate or default to current date
+      const currentDate = startDate ? new Date(startDate) : new Date();
+
+      // Format the startDate based on the dateType
+      let formattedStartDate;
+      switch (dateType) {
+        case "yearly":
+          formattedStartDate = format(currentDate, "yyyy");
+          break;
+        case "monthly":
+          formattedStartDate = format(currentDate, "yyyy-MM");
+          break;
+        case "weekly":
+        case "daily":
+          formattedStartDate = format(currentDate, "yyyy-MM-dd");
+          break;
+        default:
+          formattedStartDate = format(currentDate, "yyyy-MM");
+      }
+
+      const { data, error } = await Supabase.rpc(
+        "get_latest_payments_for_dashboard"
+      );
+
+      if (error) throw error;
+
+      // Client-side filtering
+      const filteredData = data.filter((item) => {
+        if (!item.verified_date) return false;
+
+        const itemDate = new Date(item.verified_date);
+        let formattedItemDate;
+
+        switch (dateType) {
+          case "yearly":
+            formattedItemDate = format(itemDate, "yyyy");
+            break;
+          case "monthly":
+            formattedItemDate = format(itemDate, "yyyy-MM");
+            break;
+          case "weekly":
+          case "daily":
+            formattedItemDate = format(itemDate, "yyyy-MM-dd");
+            break;
+          default:
+            formattedItemDate = format(itemDate, "yyyy-MM");
+        }
+
+        return (
+          (!selectedBranch || item.branch_name === selectedBranch) &&
+          formattedItemDate === formattedStartDate
+        );
+      });
+
+      // Sort and format as before
+      const sortedPayments = filteredData.sort(
+        (a, b) => new Date(b.verified_date) - new Date(a.verified_date)
+      );
+
+      const formattedPayments = sortedPayments.map((payment) => ({
+        branch_name: payment.branch_name,
+        verified_date: format(
+          parseISO(payment.verified_date),
+          "MMMM d, yyyy @ hh:mm a"
+        ),
+        total: payment.total,
+        owner_name: payment.owner_name,
+        method: payment.method,
+      }));
+
+      setLatestPayments(formattedPayments);
+    } catch (error) {
+      console.error("Error fetching recent payments:", error);
+      setLatestPayments([]);
+    }
+  };
+
   useEffect(() => {
-    // Function to perform the initial and periodic fetching
     const fetchData = () => {
+      fetchLatestPayments();
       fetchTotalRentalCollections();
       fetchTotalReceivables();
       fetchTotalVehiclesInCustody();
@@ -696,7 +770,7 @@ export default function Home() {
 
         <div className="grid grid-cols-2 gap-5 mt-5 flex-1">
           {/* latest payments */}
-          <LatestPayments />
+          <LatestPayments latestPayments={latestPayments} />
 
           <div className="grid gap-5 grid-rows-5">
             {/* vehicles in custody */}

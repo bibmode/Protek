@@ -1,7 +1,15 @@
 import React from "react";
 import { IoIosArrowForward } from "react-icons/io";
 
-const LatestPayments = () => {
+const LatestPayments = ({ latestPayments = [], error = null }) => {
+  if (error) {
+    return (
+      <div className="text-center py-4 text-red-500">
+        Error loading payments: {error}
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-2xl border border-gray-200 pb-4 h-full">
       <div className="p-4 flex justify-between border-b border-gray-200">
@@ -26,36 +34,25 @@ const LatestPayments = () => {
       </div>
 
       {/* items */}
-      <div className="grid grid-cols-4 gap-2 px-4 pt-1 pb-[0.8rem] text-[0.7rem]">
-        <p className="pl-2">Jane Doe</p>
-        <p className="text-center">₱ 5,000.00</p>
-        <p className="text-center">GCash</p>
-        <p className="text-center">Butuan City</p>
-      </div>
-      <div className="grid grid-cols-4 gap-2 px-4 py-[0.8rem] text-[0.7rem]">
-        <p className="pl-2">Jane Doe</p>
-        <p className="text-center">₱ 5,000.00</p>
-        <p className="text-center">GCash</p>
-        <p className="text-center">Butuan City</p>
-      </div>
-      <div className="grid grid-cols-4 gap-2 px-4 py-[0.8rem] text-[0.7rem]">
-        <p className="pl-2">Jane Doe</p>
-        <p className="text-center">₱ 5,000.00</p>
-        <p className="text-center">GCash</p>
-        <p className="text-center">Butuan City</p>
-      </div>
-      <div className="grid grid-cols-4 gap-2 px-4 py-[0.8rem] text-[0.7rem]">
-        <p className="pl-2">Jane Doe</p>
-        <p className="text-center">₱ 5,000.00</p>
-        <p className="text-center">GCash</p>
-        <p className="text-center">Butuan City</p>
-      </div>
-      <div className="grid grid-cols-4 gap-2 px-4 py-[0.8rem] text-[0.7rem]">
-        <p className="pl-2">Jane Doe</p>
-        <p className="text-center">₱ 5,000.00</p>
-        <p className="text-center">GCash</p>
-        <p className="text-center">Butuan City</p>
-      </div>
+      {latestPayments.length > 0 ? (
+        latestPayments.map((payment, index) => (
+          <div
+            key={index}
+            className="grid grid-cols-4 gap-2 px-4 pt-1 pb-[0.8rem] text-[0.7rem]"
+          >
+            <p className="pl-2">{payment.owner_name}</p>
+            <p className="text-center">
+              ₱ {parseFloat(payment.total).toFixed(2)}
+            </p>
+            <p className="text-center uppercase">{payment.method}</p>
+            <p className="text-center">{payment.branch_name}</p>
+          </div>
+        ))
+      ) : (
+        <p className="text-center text-gray-500 py-4 text-[0.8rem]">
+          No recent payments.
+        </p>
+      )}
     </div>
   );
 };
