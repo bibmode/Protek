@@ -12,20 +12,32 @@ import Receivables from "./components/Receivables";
 import VehiclesInCustody from "./components/VehiclesInCustody";
 import CheckOuts from "./components/CheckOuts";
 import {
-  eachYearOfInterval,
-  eachMonthOfInterval,
+  parse,
+  subDays,
+  isValid,
+  addYears,
   eachDayOfInterval,
-  startOfMonth,
-  endOfMonth,
   startOfDay,
   endOfDay,
+  eachMonthOfInterval,
+  eachWeekOfInterval,
+  eachYearOfInterval,
+  format,
+  isAfter,
+  isBefore,
+  isSameDay,
+  isSameMonth,
+  parseISO,
+  startOfMonth,
   startOfWeek,
   endOfWeek,
-  format,
-  parse,
-  eachWeekOfInterval,
-  isValid,
+  endOfMonth,
+  subMonths,
+  subWeeks,
 } from "date-fns";
+import LatestPayments from "./components/LatestPayments";
+import VehiclesList from "./components/VehiclesList";
+import TellersLog from "./components/TellersLog";
 
 export default function Home() {
   const [startDate, setStartDate] = useState(new Date());
@@ -37,7 +49,9 @@ export default function Home() {
     Array(6).fill(0)
   );
   const [totalReceivables, setTotalReceivables] = useState(Array(6).fill(0));
-  const [totalVehicles, setTotalVehicles] = useState(Array(6).fill(0));
+  const [totalVehiclesInCustody, setTotalVehiclesInCustody] = useState(
+    Array(6).fill(0)
+  );
   const [totalCheckOuts, setTotalCheckOuts] = useState(Array(6).fill(0));
 
   const handleDateChange = (date) => {
@@ -329,7 +343,7 @@ export default function Home() {
     }
   };
 
-  const fetchTotalVehicles = async () => {
+  const fetchTotalVehiclesInCustody = async () => {
     try {
       let dateRange = [];
       const currentDate = new Date(startDate);
@@ -339,63 +353,63 @@ export default function Home() {
         case "yearly":
           dateRange = eachYearOfInterval({
             start: new Date(currentDate.getFullYear() - 5, 0, 1),
-            end: new Date(currentDate.getFullYear(), 11, 31),
+            end: currentDate,
           })
             .map((date) => format(date, "yyyy"))
             .slice(-6);
+          console.log("Yearly Date Range:", dateRange);
           break;
 
         case "monthly":
           dateRange = eachMonthOfInterval({
-            start: startOfMonth(
-              new Date(currentDate.getFullYear(), currentDate.getMonth() - 5, 1)
-            ),
-            end: endOfMonth(currentDate),
+            start: startOfMonth(subMonths(currentDate, 5)),
+            end: currentDate,
           })
             .map((date) => format(date, "yyyy-MM"))
             .slice(-6);
+          console.log("Monthly Date Range:", dateRange);
           break;
 
         case "daily":
           dateRange = eachDayOfInterval({
-            start: startOfDay(
-              new Date(currentDate.getTime() - 5 * 24 * 60 * 60 * 1000)
-            ),
-            end: endOfDay(currentDate),
+            start: subDays(currentDate, 5),
+            end: currentDate,
           })
             .map((date) => format(date, "yyyy-MM-dd"))
             .slice(-6);
+          console.log("Daily Date Range:", dateRange);
           break;
 
         case "weekly":
-          const weeks = eachWeekOfInterval({
-            start: startOfWeek(
-              new Date(currentDate.getTime() - 6 * 7 * 24 * 60 * 60 * 1000),
-              { weekStartsOn: 0 }
-            ),
-            end: endOfWeek(currentDate, { weekStartsOn: 0 }),
-          }).map((date) => ({
-            start: format(startOfWeek(date, { weekStartsOn: 0 }), "yyyy-MM-dd"),
-            end: format(endOfWeek(date, { weekStartsOn: 0 }), "yyyy-MM-dd"),
-          }));
-          dateRange = weeks.slice(-6);
+          dateRange = eachWeekOfInterval({
+            start: startOfWeek(subWeeks(currentDate, 5), { weekStartsOn: 0 }),
+            end: currentDate,
+          })
+            .map((date) => ({
+              start: format(
+                startOfWeek(date, { weekStartsOn: 0 }),
+                "yyyy-MM-dd"
+              ),
+              end: format(endOfWeek(date, { weekStartsOn: 0 }), "yyyy-MM-dd"),
+            }))
+            .slice(-6);
+          console.log("Weekly Date Range:", dateRange);
           break;
 
         default:
           dateRange = eachMonthOfInterval({
-            start: startOfMonth(
-              new Date(currentDate.getFullYear(), currentDate.getMonth() - 5, 1)
-            ),
-            end: endOfMonth(currentDate),
+            start: startOfMonth(subMonths(currentDate, 5)),
+            end: currentDate,
           })
             .map((date) => format(date, "yyyy-MM"))
             .slice(-6);
+          console.log("Default (Monthly) Date Range:", dateRange);
           break;
       }
 
       // Fetch data from Supabase
       const { data, error } = await Supabase.rpc(
-        "get_total_vehicles_for_dashboard"
+        "get_vehicle_data_for_dashboard"
       );
 
       if (error) {
@@ -408,70 +422,71 @@ export default function Home() {
         throw new Error("Unexpected data format");
       }
 
-      // Initialize totalVehicles array
-      const totalVehicles = dateRange.map(() => 0);
+      // Initialize totalVehiclesInCustody array
+      const totalVehiclesInCustody = Array(dateRange.length).fill(0);
 
       // Process total vehicles
       data.forEach((item) => {
-        const itemCheckinDate = parseDate(item.checkin_date);
+        if (item.branch_name !== selectedBranch) return;
+
+        const itemCheckinDate = parseISO(item.checkin_date);
         const itemCheckoutDate = item.checkout_date
-          ? parseDate(item.checkout_date)
-          : new Date(); // Use current date if checkout_date is null
-
-        if (!itemCheckinDate) {
-          console.warn(
-            `Invalid check-in date encountered: ${item.checkin_date}`
-          );
-          return; // Skip this item
-        }
-
-        const formattedItemCheckinDate = format(itemCheckinDate, "yyyy-MM-dd");
-        const formattedItemCheckoutDate = format(
-          itemCheckoutDate,
-          "yyyy-MM-dd"
-        );
+          ? parseISO(item.checkout_date)
+          : addYears(currentDate, 1);
 
         dateRange.forEach((range, index) => {
-          let isInRange = false;
+          let isInCustody = false;
+
           switch (selectedDateType) {
             case "daily":
-              isInRange =
-                formattedItemCheckinDate <= range &&
-                formattedItemCheckoutDate >= range;
+              const rangeDate = parseISO(range);
+              isInCustody =
+                (isSameDay(itemCheckinDate, rangeDate) ||
+                  isBefore(itemCheckinDate, rangeDate)) &&
+                isAfter(itemCheckoutDate, rangeDate);
               break;
-            case "monthly":
-              const rangeMonth = range.split("-");
-              isInRange =
-                formattedItemCheckinDate <= range + "-01" &&
-                formattedItemCheckoutDate >= range + "-01";
-              break;
-            case "yearly":
-              isInRange =
-                formattedItemCheckinDate.slice(0, 4) === range &&
-                formattedItemCheckoutDate.slice(0, 4) === range;
-              break;
+
             case "weekly":
-              isInRange =
-                formattedItemCheckinDate <= range.end &&
-                formattedItemCheckoutDate >= range.start;
+              const startOfWeekRange = parseISO(range.start);
+              const endOfWeekRange = parseISO(range.end);
+              isInCustody =
+                (isSameDay(itemCheckinDate, startOfWeekRange) ||
+                  isBefore(itemCheckinDate, endOfWeekRange)) &&
+                (isAfter(itemCheckoutDate, startOfWeekRange) ||
+                  isSameDay(itemCheckoutDate, endOfWeekRange));
+              break;
+
+            case "monthly":
+              const rangeMonth = parseISO(range + "-01");
+              isInCustody =
+                (isBefore(itemCheckinDate, endOfMonth(rangeMonth)) ||
+                  isSameMonth(itemCheckinDate, rangeMonth)) &&
+                isAfter(itemCheckoutDate, endOfMonth(rangeMonth));
+              break;
+
+            case "yearly":
+              const rangeYear = parseInt(range);
+              isInCustody =
+                itemCheckinDate.getFullYear() <= rangeYear &&
+                itemCheckoutDate.getFullYear() !== rangeYear;
               break;
           }
 
-          if (isInRange && item.branch_name === selectedBranch) {
-            totalVehicles[index] += parseFloat(item.total_vehicles) || 0;
+          if (isInCustody) {
+            totalVehiclesInCustody[index]++;
           }
         });
       });
 
-      setTotalVehicles(totalVehicles);
+      console.log(
+        `Total Vehicles In Custody (${selectedDateType}):`,
+        totalVehiclesInCustody
+      );
+
+      setTotalVehiclesInCustody(totalVehiclesInCustody);
     } catch (error) {
       console.error("Error fetching total vehicles:", error.message || error);
-      console.error("Current state:", {
-        startDate,
-        selectedDateType,
-        selectedBranch,
-      });
-      setTotalVehicles(Array(6).fill(0)); // Default to array of 0 in case of error
+      setTotalVehiclesInCustody(Array(6).fill(0)); // Default to array of 0 in case of error
     }
   };
 
@@ -617,7 +632,7 @@ export default function Home() {
     const fetchData = () => {
       fetchTotalRentalCollections();
       fetchTotalReceivables();
-      fetchTotalVehicles();
+      fetchTotalVehiclesInCustody();
       fetchTotalCheckOuts();
     };
 
@@ -669,7 +684,7 @@ export default function Home() {
           />
 
           <VehiclesInCustody
-            totalVehicles={totalVehicles}
+            totalVehiclesInCustody={totalVehiclesInCustody}
             selectedDateType={selectedDateType}
           />
 
@@ -681,129 +696,11 @@ export default function Home() {
 
         <div className="grid grid-cols-2 gap-5 mt-5 flex-1">
           {/* latest payments */}
-          <div className="bg-white rounded-2xl border border-gray-200 pb-4 h-full">
-            <div className="p-4 flex justify-between border-b border-gray-200">
-              <div className="pl-2">
-                <p className="text-[0.900rem] font-medium">Latest Payments</p>
-                <p className="text-[0.68rem] text-gray-600">
-                  See latest payment transactions
-                </p>
-              </div>
-              <button className="flex items-center text-blue-500 hover:text-blue-300 pr-1">
-                <p className="text-xs font-semibold">More details</p>
-                <IoIosArrowForward className="text-xl ml-2" />
-              </button>
-            </div>
-
-            {/* labels */}
-            <div className="grid grid-cols-4 gap-2 p-4 text-[0.8rem] text-gray-500">
-              <p className="pl-2">Name</p>
-              <p className="text-center">Amount</p>
-              <p className="text-center">Method</p>
-              <p className="text-center">Branch</p>
-            </div>
-            {/* items */}
-            <div className="grid grid-cols-4 gap-2 px-4 pt-1 pb-[0.8rem] text-[0.7rem]">
-              <p className="pl-2">Jane Doe</p>
-              <p className="text-center">₱ 5,000.00</p>
-              <p className="text-center">GCash</p>
-              <p className="text-center">Butuan City</p>
-            </div>
-            <div className="grid grid-cols-4 gap-2 px-4 py-[0.8rem] text-[0.7rem]">
-              <p className="pl-2">Jane Doe</p>
-              <p className="text-center">₱ 5,000.00</p>
-              <p className="text-center">GCash</p>
-              <p className="text-center">Butuan City</p>
-            </div>
-            <div className="grid grid-cols-4 gap-2 px-4 py-[0.8rem] text-[0.7rem]">
-              <p className="pl-2">Jane Doe</p>
-              <p className="text-center">₱ 5,000.00</p>
-              <p className="text-center">GCash</p>
-              <p className="text-center">Butuan City</p>
-            </div>
-            <div className="grid grid-cols-4 gap-2 px-4 py-[0.8rem] text-[0.7rem]">
-              <p className="pl-2">Jane Doe</p>
-              <p className="text-center">₱ 5,000.00</p>
-              <p className="text-center">GCash</p>
-              <p className="text-center">Butuan City</p>
-            </div>
-            <div className="grid grid-cols-4 gap-2 px-4 py-[0.8rem] text-[0.7rem]">
-              <p className="pl-2">Jane Doe</p>
-              <p className="text-center">₱ 5,000.00</p>
-              <p className="text-center">GCash</p>
-              <p className="text-center">Butuan City</p>
-            </div>
-          </div>
+          <LatestPayments />
 
           <div className="grid gap-5 grid-rows-5">
             {/* vehicles in custody */}
-            <div className="bg-white rounded-2xl border row-span-3 border-gray-200 pb-4">
-              <div className="p-4 flex justify-between border-b border-gray-200">
-                <div className="pl-3">
-                  <p className="text-[0.900rem] font-medium">
-                    Vehicles in Custody
-                  </p>
-                  <p className="text-[0.68rem] text-gray-600">
-                    See the vehicles for every branch
-                  </p>
-                </div>
-                <button className="flex items-center text-blue-500 hover:text-blue-300 pr-1">
-                  <p className="text-xs font-semibold">More details</p>
-                  <IoIosArrowForward className="text-2xl ml-2" />
-                </button>
-              </div>
-
-              {/* labels */}
-              <div className="grid grid-cols-4 gap-2 p-4 text-[0.8rem] text-gray-500">
-                <p className="pl-3">Type</p>
-                <p className="text-center">Quantity</p>
-                <p className="text-center">Collected Fees</p>
-                <p className="text-center">Receivables</p>
-              </div>
-              {/* items */}
-              <div className="grid grid-cols-4 gap-2 px-4 pt-1 pb-[0.8rem] text-[0.7rem]">
-                <p className="pl-3">Sedan</p>
-                <p className="text-center">100</p>
-                <p className="text-center">₱ 519,300.00</p>
-                <p className="text-center">₱ 51,800.00</p>
-              </div>
-              <div className="grid grid-cols-4 gap-2 px-4 py-[0.8rem] text-[0.7rem]">
-                <p className="pl-3">SUV</p>
-                <p className="text-center">30</p>
-                <p className="text-center">₱ 519,300.00</p>
-                <p className="text-center">₱ 51,800.00</p>
-              </div>
-              <div className="grid grid-cols-4 gap-2 px-4 py-[0.8rem] text-[0.7rem]">
-                <p className="pl-3">Truck</p>
-                <p className="text-center">15</p>
-                <p className="text-center">₱ 519,300.00</p>
-                <p className="text-center">₱ 51,800.00</p>
-              </div>
-              <div className="grid grid-cols-4 gap-2 px-4 py-[0.8rem] text-[0.7rem]">
-                <p className="pl-3">Motorcycle</p>
-                <p className="text-center">58</p>
-                <p className="text-center">₱ 519,300.00</p>
-                <p className="text-center">₱ 51,800.00</p>
-              </div>
-              <div className="grid grid-cols-4 gap-2 px-4 py-[0.8rem] text-[0.7rem]">
-                <p className="pl-3">Van</p>
-                <p className="text-center">7</p>
-                <p className="text-center">₱ 519,300.00</p>
-                <p className="text-center">₱ 51,800.00</p>
-              </div>
-              <div className="grid grid-cols-4 gap-2 px-4 py-[0.8rem] text-[0.7rem]">
-                <p className="pl-3">Sports car</p>
-                <p className="text-center">2</p>
-                <p className="text-center">₱ 519,300.00</p>
-                <p className="text-center">₱ 51,800.00</p>
-              </div>
-              <div className="grid grid-cols-4 gap-2 px-4 py-[0.8rem] text-[0.7rem]">
-                <p className="pl-3">Off-the-road</p>
-                <p className="text-center">10</p>
-                <p className="text-center">₱ 519,300.00</p>
-                <p className="text-center">₱ 51,800.00</p>
-              </div>
-            </div>
+            <VehiclesList />
 
             {/* logs */}
             <div className="bg-white rounded-2xl border row-span-2 border-gray-200 pb-4">
@@ -821,46 +718,7 @@ export default function Home() {
               </div>
 
               {/* logs */}
-              <div className="grid grid-cols-4 gap-2 px-4 py-1 pt-4 text-[0.7rem]">
-                <p className="pl-2">Jane Doe</p>
-                <p className="font-semibold text-green-600 text-center">
-                  IN 10:30 AM
-                </p>
-                <p className="font-semibold text-red-600 text-center">
-                  OUT 5:30 PM
-                </p>
-                <p className="text-center">Butuan City</p>
-              </div>
-              <div className="grid grid-cols-4 gap-2 px-4 py-1 text-[0.7rem]">
-                <p className="pl-2">Jane Doe</p>
-                <p className="font-semibold text-green-600 text-center">
-                  IN 10:30 AM
-                </p>
-                <p className="font-semibold text-red-600 text-center">
-                  OUT 5:30 PM
-                </p>
-                <p className="text-center">Butuan City</p>
-              </div>
-              <div className="grid grid-cols-4 gap-2 px-4 py-1 text-[0.7rem]">
-                <p className="pl-2">Jane Doe</p>
-                <p className="font-semibold text-green-600 text-center">
-                  IN 10:30 AM
-                </p>
-                <p className="font-semibold text-red-600 text-center">
-                  OUT 5:30 PM
-                </p>
-                <p className="text-center">Butuan City</p>
-              </div>
-              <div className="grid grid-cols-4 gap-2 px-4 py-1 text-[0.7rem]">
-                <p className="pl-2">Jane Doe</p>
-                <p className="font-semibold text-green-600 text-center">
-                  IN 10:30 AM
-                </p>
-                <p className="font-semibold text-red-600 text-center">
-                  OUT 5:30 PM
-                </p>
-                <p className="text-center">Butuan City</p>
-              </div>
+              <TellersLog />
             </div>
           </div>
         </div>

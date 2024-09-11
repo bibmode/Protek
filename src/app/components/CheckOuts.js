@@ -18,7 +18,7 @@ const CheckOuts = ({ totalCheckOuts = [], selectedDateType }) => {
     const previousPeriod = totalCheckOuts[4] || 0;
     const currentPeriod = totalCheckOuts[5] || 0;
 
-    if (previousPeriod === 0 && currentPeriod === 0)
+    if (previousPeriod === currentPeriod)
       return { percentage: 0, isPositive: true };
     if (previousPeriod === 0) return { percentage: 100, isPositive: true };
     if (currentPeriod === 0) return { percentage: -100, isPositive: false };
@@ -34,9 +34,15 @@ const CheckOuts = ({ totalCheckOuts = [], selectedDateType }) => {
   const { percentage, isPositive } = calculatePercentageChange();
 
   // Determine display percentage
+  const prev = totalCheckOuts[4];
+  const current = totalCheckOuts[5];
+
+  // Determine if the value has changed
+  const hasChanged = prev !== current;
+
   const displayPercentage =
     percentage === 0
-      ? totalCheckOuts[5] === 0
+      ? !hasChanged
         ? "0%"
         : isPositive
         ? "+100%"

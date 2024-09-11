@@ -1,22 +1,31 @@
 import React, { useState, useEffect } from "react";
 
-const VehiclesInCustody = ({ totalVehicles = [], selectedDateType }) => {
+const VehiclesInCustody = ({
+  totalVehiclesInCustody = [],
+  selectedDateType,
+}) => {
   const [activeIndex, setActiveIndex] = useState(
-    totalVehicles.length > 0 ? 5 : 0
+    totalVehiclesInCustody.length > 0 ? 5 : 0
   );
 
-  // Validate totalVehicles
-  if (!Array.isArray(totalVehicles) || totalVehicles.some(isNaN)) {
+  // Validate totalVehiclesInCustody
+  if (
+    !Array.isArray(totalVehiclesInCustody) ||
+    totalVehiclesInCustody.some(isNaN)
+  ) {
     return null;
   }
 
   // Compute highestTotalVehicles
-  const highestTotalVehicles = Math.max(...totalVehicles.map(Number), 1);
+  const highestTotalVehiclesInCustody = Math.max(
+    ...totalVehiclesInCustody.map(Number),
+    1
+  );
 
   // Calculate percentage change
   const calculatePercentageChange = () => {
-    const previousPeriod = totalVehicles[4] || 0;
-    const currentPeriod = totalVehicles[5] || 0;
+    const previousPeriod = totalVehiclesInCustody[4] || 0;
+    const currentPeriod = totalVehiclesInCustody[5] || 0;
 
     if (previousPeriod === 0 && currentPeriod === 0)
       return { percentage: 0, isPositive: true };
@@ -34,9 +43,15 @@ const VehiclesInCustody = ({ totalVehicles = [], selectedDateType }) => {
   const { percentage, isPositive } = calculatePercentageChange();
 
   // Determine display percentage
+  const prev = totalVehiclesInCustody[4];
+  const current = totalVehiclesInCustody[5];
+
+  // Determine if the value has changed
+  const hasChanged = prev !== current;
+
   const displayPercentage =
     percentage === 0
-      ? totalVehicles[5] === 0
+      ? !hasChanged
         ? "0%"
         : isPositive
         ? "+100%"
@@ -45,8 +60,8 @@ const VehiclesInCustody = ({ totalVehicles = [], selectedDateType }) => {
 
   // Determine current vehicles
   const currentVehicles =
-    typeof totalVehicles[activeIndex] === "number"
-      ? totalVehicles[activeIndex]
+    typeof totalVehiclesInCustody[activeIndex] === "number"
+      ? totalVehiclesInCustody[activeIndex]
       : 0;
 
   // Determine comparison text based on selectedDateType
@@ -76,9 +91,9 @@ const VehiclesInCustody = ({ totalVehicles = [], selectedDateType }) => {
         </p>
 
         <div className="h-[49px] flex items-end ml-auto">
-          {totalVehicles.map((count, index) => {
+          {totalVehiclesInCustody.map((count, index) => {
             const barHeight =
-              count === 0 ? 10 : (count / highestTotalVehicles) * 49;
+              count === 0 ? 10 : (count / highestTotalVehiclesInCustody) * 49;
 
             return (
               <div
@@ -91,7 +106,7 @@ const VehiclesInCustody = ({ totalVehicles = [], selectedDateType }) => {
                   setActiveIndex(index);
                 }}
                 onMouseLeave={() => {
-                  setActiveIndex(totalVehicles.length > 0 ? 5 : 0);
+                  setActiveIndex(totalVehiclesInCustody.length > 0 ? 5 : 0);
                 }}
                 role="button"
                 aria-label={`Period ${
