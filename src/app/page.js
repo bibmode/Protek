@@ -56,6 +56,8 @@ export default function Home() {
   );
   const [totalCheckOuts, setTotalCheckOuts] = useState(Array(6).fill(0));
   const [latestPayments, setLatestPayments] = useState([]);
+  const [vehiclesList, setVehiclesList] = useState([]);
+  const [tellersLog, setTellersLog] = useState([]);
 
   const handleDateChange = (date) => {
     setStartDate(date);
@@ -701,8 +703,86 @@ export default function Home() {
     }
   };
 
+  const fetchTellersLog = async () => {
+    try {
+      const dateType = selectedDateType || "monthly";
+
+      const currentDate = startDate ? new Date(startDate) : new Date();
+
+      // Format the startDate based on the dateType
+      let formattedStartDate;
+      switch (dateType) {
+        case "yearly":
+          formattedStartDate = format(currentDate, "yyyy");
+          break;
+        case "monthly":
+          formattedStartDate = format(currentDate, "yyyy-MM");
+          break;
+        case "weekly":
+        case "daily":
+          formattedStartDate = format(currentDate, "yyyy-MM-dd");
+          break;
+        default:
+          formattedStartDate = format(currentDate, "yyyy-MM");
+      }
+
+      const { data, error } = await Supabase.rpc(
+        "get_tellers_log_for_dashboard"
+      );
+
+      if (error) throw error;
+
+      // Client-side filtering
+      const filteredData = data.filter((item) => {
+        if (!item.log_date) return false;
+
+        const itemDate = new Date(item.log_date);
+        let formattedItemDate;
+
+        switch (dateType) {
+          case "yearly":
+            formattedItemDate = format(itemDate, "yyyy");
+            break;
+          case "monthly":
+            formattedItemDate = format(itemDate, "yyyy-MM");
+            break;
+          case "weekly":
+          case "daily":
+            formattedItemDate = format(itemDate, "yyyy-MM-dd");
+            break;
+          default:
+            formattedItemDate = format(itemDate, "yyyy-MM");
+        }
+
+        return (
+          (!selectedBranch || item.branch_name === selectedBranch) &&
+          formattedItemDate === formattedStartDate
+        );
+      });
+
+      // Sort and format as before
+      const sortedTellersLogs = filteredData.sort(
+        (a, b) => new Date(b.verified_date) - new Date(a.verified_date)
+      );
+
+      const formattedTellersLogs = sortedTellersLogs.map((log) => ({
+        teller_name: log.teller_name,
+        log_date: format(parseISO(log.log_date), "MMMM d, yyyy"),
+        login_time: log.login_time,
+        logout_time: log.logout_time,
+        branch_name: log.branch_name,
+      }));
+
+      setTellersLog(formattedTellersLogs);
+    } catch (error) {
+      console.error("Error fetching tellers log:", error);
+      setTellersLog([]);
+    }
+  };
+
   useEffect(() => {
     const fetchData = () => {
+      fetchTellersLog();
       fetchLatestPayments();
       fetchTotalRentalCollections();
       fetchTotalReceivables();
@@ -792,7 +872,7 @@ export default function Home() {
               </div>
 
               {/* logs */}
-              <TellersLog />
+              <TellersLog tellersLog={tellersLog} />
             </div>
           </div>
         </div>

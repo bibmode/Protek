@@ -6,10 +6,12 @@ import { Supabase } from "/utils/supabase/client";
 import Image from "next/image";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { format } from "date-fns";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [passKey, setPassKey] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const validateEmail = (email) => {
@@ -23,25 +25,23 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
 
     if (!email || !passKey) {
-      toast.error("Both email and passkey are required!", {
-        position: "top-right",
-      });
+      toast.error("Both email and passkey are required!");
+      setIsLoading(false);
       return;
     }
 
     if (!validateEmail(email)) {
-      toast.error("Please enter a valid email address!", {
-        position: "top-right",
-      });
+      toast.error("Please enter a valid email address!");
+      setIsLoading(false);
       return;
     }
 
     if (!validatePassKey(passKey)) {
-      toast.error("Passkey must be at least 6 characters long!", {
-        position: "top-right",
-      });
+      toast.error("Passkey must be at least 6 characters long!");
+      setIsLoading(false);
       return;
     }
 
@@ -58,24 +58,56 @@ export default function Login() {
         throw new Error("Invalid email or passKey!");
       }
 
+      // Record login time
+      const currentDate = new Date();
+      const date = format(currentDate, "yyyy-MM-dd");
+      const loginTime = format(currentDate, "hh:mm a");
+
+      // Check if a record for today already exists
+      const { data: existingLogs, error: fetchError } = await Supabase.from(
+        "tellers_log"
+      )
+        .select("log_id")
+        .eq("teller_id", tellerData.id)
+        .eq("date", date);
+
+      if (fetchError) {
+        console.error("Failed to check existing login record:", fetchError);
+        // Continue with login process even if checking fails
+      } else if (existingLogs.length === 0) {
+        // No existing record for today, so insert the new login time
+        const { error: logError } = await Supabase.from("tellers_log").insert({
+          log_id: 1, // This should be handled with your own logic if auto-incrementing or other methods are used
+          teller_id: tellerData.id,
+          date,
+          login_time: loginTime,
+        });
+
+        if (logError) {
+          console.error("Failed to log login time:", logError);
+          // Optionally: Retry logic or more detailed error handling can be added here
+          // Continue with login process even if logging fails
+        }
+      } else {
+        console.log("Login time for today already recorded.");
+      }
+
       // Set a cookie with a 12-hour expiration
       const expirationDate = new Date();
-      expirationDate.setTime(expirationDate.getTime() + 12 * 60 * 60 * 1000); // 12 hours in milliseconds
+      expirationDate.setTime(expirationDate.getTime() + 12 * 60 * 60 * 1000);
       const expires = `expires=${expirationDate.toUTCString()}`;
 
       document.cookie = `tellerId=${tellerData.id}; path=/; ${expires}; Secure; HttpOnly`;
 
-      toast.success("Login successful!", {
-        position: "top-right",
-      });
+      toast.success("Login successful!");
       setTimeout(() => {
         router.push("/");
       }, 1500);
     } catch (error) {
       console.error("Login error:", error);
-      toast.error(error.message, {
-        position: "top-right",
-      });
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -118,8 +150,9 @@ export default function Login() {
           <button
             type="submit"
             className="mt-8 mb-12 bg-neutral-800 hover:bg-neutral-700 text-white font-semibold p-2 rounded-full"
+            disabled={isLoading}
           >
-            SUBMIT
+            {isLoading ? "Loading..." : "SUBMIT"}
           </button>
         </form>
         <ToastContainer />

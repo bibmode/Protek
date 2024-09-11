@@ -44,7 +44,9 @@ const LatestPayments = ({ latestPayments = [], error = null }) => {
             <p className="text-center">
               ₱ {parseFloat(payment.total).toFixed(2)}
             </p>
-            <p className="text-center uppercase">{payment.method}</p>
+            <p className="text-center first-letter:uppercase">
+              {payment.method}
+            </p>
             <p className="text-center">{payment.branch_name}</p>
           </div>
         ))
