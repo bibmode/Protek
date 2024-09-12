@@ -23,6 +23,51 @@ export default function Login() {
     return passKey.length >= 6;
   };
 
+  const recordLoginTime = async (tellerData) => {
+    const currentDate = new Date();
+    const date = format(currentDate, "yyyy-MM-dd");
+    const loginTime = format(currentDate, "HH:mm:ss");
+
+    try {
+      const { data: existingLog, error: fetchError } = await Supabase.from(
+        "tellers_log"
+      )
+        .select("log_id")
+        .eq("teller_id", tellerData.id)
+        .eq("date", date)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error("Failed to check existing login record:", fetchError);
+        return { success: false, message: "Failed to check login record." };
+      }
+
+      if (existingLog) {
+        return { success: true, message: "Login already recorded for today." };
+      }
+
+      const { data: insertedData, error: insertError } = await Supabase.from(
+        "tellers_log"
+      )
+        .insert({
+          teller_id: tellerData.id,
+          date,
+          login_time: loginTime,
+        })
+        .select();
+
+      if (insertError) {
+        console.error("Failed to log login time:", insertError);
+        return { success: false, message: "Failed to record login time." };
+      } else {
+        return { success: true, message: "Login time recorded successfully." };
+      }
+    } catch (error) {
+      console.error("Unexpected error in recordLoginTime:", error);
+      return { success: false, message: "An unexpected error occurred." };
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -46,7 +91,6 @@ export default function Login() {
     }
 
     try {
-      // Authenticate user by querying the `tellers` table
       const { data: tellerData, error: tellerError } = await Supabase.from(
         "tellers"
       )
@@ -58,41 +102,13 @@ export default function Login() {
         throw new Error("Invalid email or passKey!");
       }
 
-      // Record login time
-      const currentDate = new Date();
-      const date = format(currentDate, "yyyy-MM-dd");
-      const loginTime = format(currentDate, "hh:mm a");
-
-      // Check if a record for today already exists
-      const { data: existingLogs, error: fetchError } = await Supabase.from(
-        "tellers_log"
-      )
-        .select("log_id")
-        .eq("teller_id", tellerData.id)
-        .eq("date", date);
-
-      if (fetchError) {
-        console.error("Failed to check existing login record:", fetchError);
-        // Continue with login process even if checking fails
-      } else if (existingLogs.length === 0) {
-        // No existing record for today, so insert the new login time
-        const { error: logError } = await Supabase.from("tellers_log").insert({
-          log_id: 1, // This should be handled with your own logic if auto-incrementing or other methods are used
-          teller_id: tellerData.id,
-          date,
-          login_time: loginTime,
-        });
-
-        if (logError) {
-          console.error("Failed to log login time:", logError);
-          // Optionally: Retry logic or more detailed error handling can be added here
-          // Continue with login process even if logging fails
-        }
+      const loginResult = await recordLoginTime(tellerData);
+      if (loginResult.success) {
+        console.log(loginResult.message);
       } else {
-        console.log("Login time for today already recorded.");
+        console.error(loginResult.message);
       }
 
-      // Set a cookie with a 12-hour expiration
       const expirationDate = new Date();
       expirationDate.setTime(expirationDate.getTime() + 12 * 60 * 60 * 1000);
       const expires = `expires=${expirationDate.toUTCString()}`;
@@ -100,6 +116,8 @@ export default function Login() {
       document.cookie = `tellerId=${tellerData.id}; path=/; ${expires}; Secure; HttpOnly`;
 
       toast.success("Login successful!");
+      if (loginResult.success) {
+      }
       setTimeout(() => {
         router.push("/");
       }, 1500);
