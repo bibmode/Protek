@@ -19,15 +19,17 @@ const TellersLog = ({ tellersLog }) => {
   };
 
   return (
-    <div>
-      <div>
-        <div className="grid grid-cols-8 gap-2 px-4 pt-4 text-[0.8rem] text-gray-500">
-          <p className="pl-2 col-span-2">Teller</p>
-          <p className="text-center col-span-2">Date</p>
-          <p className="text-center">Time-In</p>
-          <p className="text-center">Time-Out</p>
-          <p className="text-center col-span-2">Branch</p>
-        </div>
+    <div className="overflow-hidden">
+      <div className="grid grid-cols-8 gap-2 px-4 pt-4 text-[0.8rem] text-gray-500">
+        <p className="pl-2 col-span-2">Teller</p>
+        <p className="text-center col-span-2">Date</p>
+        <p className="text-center">Time-In</p>
+        <p className="text-center">Time-Out</p>
+        <p className="text-center col-span-2">Branch</p>
+      </div>
+      <div className="overflow-y-auto max-h-[400px]">
+        {" "}
+        {/* Adjust max height as needed */}
         {tellersLog.length > 0 ? (
           tellersLog.map((teller, index) => (
             <div

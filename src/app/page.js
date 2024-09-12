@@ -36,6 +36,8 @@ import {
   subWeeks,
   startOfYear,
   endOfYear,
+  isSameYear,
+  isWithinInterval,
 } from "date-fns";
 import LatestPayments from "./components/LatestPayments";
 import VehiclesList from "./components/VehiclesList";
@@ -565,13 +567,13 @@ export default function Home() {
       const totalCheckOuts = dateRange.map((range) => {
         const rangeData = data.filter((item) => {
           if (!item.checkout_date) {
-            return false; // Skip items with null or undefined checkout_date
+            return false;
           }
 
           const itemDate = parseDate(item.checkout_date);
           if (!itemDate) {
             console.warn(`Invalid date encountered: ${item.checkout_date}`);
-            return false; // Skip this item
+            return false;
           }
 
           const formattedItemDate = format(itemDate, "yyyy-MM-dd");
@@ -629,21 +631,23 @@ export default function Home() {
       // Use the provided startDate or default to current date
       const currentDate = startDate ? new Date(startDate) : new Date();
 
-      // Format the startDate based on the dateType
-      let formattedStartDate;
+      // Calculate the start of the period based on dateType
+      let periodStart;
       switch (dateType) {
         case "yearly":
-          formattedStartDate = format(currentDate, "yyyy");
+          periodStart = startOfYear(currentDate);
           break;
         case "monthly":
-          formattedStartDate = format(currentDate, "yyyy-MM");
+          periodStart = startOfMonth(currentDate);
           break;
         case "weekly":
+          periodStart = startOfWeek(currentDate, { weekStartsOn: 0 }); // Assuming weeks start on Sunday
+          break;
         case "daily":
-          formattedStartDate = format(currentDate, "yyyy-MM-dd");
+          periodStart = startOfDay(currentDate);
           break;
         default:
-          formattedStartDate = format(currentDate, "yyyy-MM");
+          periodStart = startOfMonth(currentDate);
       }
 
       const { data, error } = await Supabase.rpc(
@@ -657,26 +661,30 @@ export default function Home() {
         if (!item.verified_date) return false;
 
         const itemDate = new Date(item.verified_date);
-        let formattedItemDate;
 
+        let isInPeriod;
         switch (dateType) {
           case "yearly":
-            formattedItemDate = format(itemDate, "yyyy");
+            isInPeriod = isSameYear(itemDate, currentDate);
             break;
           case "monthly":
-            formattedItemDate = format(itemDate, "yyyy-MM");
+            isInPeriod = isSameMonth(itemDate, currentDate);
             break;
           case "weekly":
+            isInPeriod = isWithinInterval(itemDate, {
+              start: periodStart,
+              end: endOfWeek(currentDate, { weekStartsOn: 0 }),
+            });
+            break;
           case "daily":
-            formattedItemDate = format(itemDate, "yyyy-MM-dd");
+            isInPeriod = isSameDay(itemDate, currentDate);
             break;
           default:
-            formattedItemDate = format(itemDate, "yyyy-MM");
+            isInPeriod = isSameMonth(itemDate, currentDate);
         }
 
         return (
-          (!selectedBranch || item.branch_name === selectedBranch) &&
-          formattedItemDate === formattedStartDate
+          (!selectedBranch || item.branch_name === selectedBranch) && isInPeriod
         );
       });
 
@@ -709,21 +717,28 @@ export default function Home() {
 
       const currentDate = startDate ? new Date(startDate) : new Date();
 
-      // Format the startDate based on the dateType
-      let formattedStartDate;
+      // Calculate the start and end of the period based on dateType
+      let periodStart, periodEnd;
       switch (dateType) {
         case "yearly":
-          formattedStartDate = format(currentDate, "yyyy");
+          periodStart = startOfYear(currentDate);
+          periodEnd = endOfYear(currentDate);
           break;
         case "monthly":
-          formattedStartDate = format(currentDate, "yyyy-MM");
+          periodStart = startOfMonth(currentDate);
+          periodEnd = endOfMonth(currentDate);
           break;
         case "weekly":
+          periodStart = startOfWeek(currentDate, { weekStartsOn: 0 }); // Assuming weeks start on Sunday
+          periodEnd = endOfWeek(currentDate, { weekStartsOn: 0 });
+          break;
         case "daily":
-          formattedStartDate = format(currentDate, "yyyy-MM-dd");
+          periodStart = startOfDay(currentDate);
+          periodEnd = endOfDay(currentDate);
           break;
         default:
-          formattedStartDate = format(currentDate, "yyyy-MM");
+          periodStart = startOfMonth(currentDate);
+          periodEnd = endOfMonth(currentDate);
       }
 
       const { data, error } = await Supabase.rpc(
@@ -737,32 +752,20 @@ export default function Home() {
         if (!item.log_date) return false;
 
         const itemDate = new Date(item.log_date);
-        let formattedItemDate;
 
-        switch (dateType) {
-          case "yearly":
-            formattedItemDate = format(itemDate, "yyyy");
-            break;
-          case "monthly":
-            formattedItemDate = format(itemDate, "yyyy-MM");
-            break;
-          case "weekly":
-          case "daily":
-            formattedItemDate = format(itemDate, "yyyy-MM-dd");
-            break;
-          default:
-            formattedItemDate = format(itemDate, "yyyy-MM");
-        }
+        const isInPeriod = isWithinInterval(itemDate, {
+          start: periodStart,
+          end: periodEnd,
+        });
 
         return (
-          (!selectedBranch || item.branch_name === selectedBranch) &&
-          formattedItemDate === formattedStartDate
+          (!selectedBranch || item.branch_name === selectedBranch) && isInPeriod
         );
       });
 
       // Sort and format as before
       const sortedTellersLogs = filteredData.sort(
-        (a, b) => new Date(b.verified_date) - new Date(a.verified_date)
+        (a, b) => new Date(b.log_date) - new Date(a.log_date)
       );
 
       const formattedTellersLogs = sortedTellersLogs.map((log) => ({
