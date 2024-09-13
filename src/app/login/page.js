@@ -29,27 +29,31 @@ export default function Login() {
     const loginTime = format(currentDate, "HH:mm:ss");
 
     try {
-      const { data: existingLog, error: fetchError } = await Supabase.from(
+      // First, get the maximum log_id
+      const { data: maxLogIdData, error: maxLogIdError } = await Supabase.from(
         "tellers_log"
       )
         .select("log_id")
-        .eq("teller_id", tellerData.id)
-        .eq("date", date)
-        .maybeSingle();
+        .order("log_id", { ascending: false })
+        .limit(1)
+        .single();
 
-      if (fetchError) {
-        console.error("Failed to check existing login record:", fetchError);
-        return { success: false, message: "Failed to check login record." };
+      if (maxLogIdError) {
+        console.error("Failed to get max log_id:", maxLogIdError);
+        return {
+          success: false,
+          message: "Failed to prepare new login record.",
+        };
       }
 
-      if (existingLog) {
-        return { success: true, message: "Login already recorded for today." };
-      }
+      const newLogId = (maxLogIdData?.log_id || 0) + 1;
 
+      // Now insert the new record with the incremented log_id
       const { data: insertedData, error: insertError } = await Supabase.from(
         "tellers_log"
       )
         .insert({
+          log_id: newLogId,
           teller_id: tellerData.id,
           date,
           login_time: loginTime,
