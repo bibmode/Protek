@@ -60,6 +60,7 @@ export default function Home() {
   const [latestPayments, setLatestPayments] = useState([]);
   const [vehiclesList, setVehiclesList] = useState([]);
   const [tellersLog, setTellersLog] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const handleDateChange = (date) => {
     setStartDate(date);
@@ -409,9 +410,6 @@ export default function Home() {
           break;
       }
 
-      // Log the generated date range
-      console.log("Generated Date Range:", dateRange);
-
       // Fetch data from Supabase
       const { data, error } = await Supabase.rpc(
         "get_vehicle_data_for_dashboard"
@@ -481,9 +479,6 @@ export default function Home() {
           }
         });
       });
-
-      // Log the total vehicles in custody array
-      console.log("Total Vehicles in Custody:", totalVehiclesInCustody);
 
       setTotalVehiclesInCustody(totalVehiclesInCustody);
     } catch (error) {
@@ -788,27 +783,50 @@ export default function Home() {
     }
   };
 
+  const fetchAllData = async () => {
+    try {
+      await Promise.all([
+        fetchTellersLog(),
+        fetchLatestPayments(),
+        fetchTotalRentalCollections(),
+        fetchTotalReceivables(),
+        fetchTotalVehiclesInCustody(),
+        fetchTotalCheckOuts(),
+      ]);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = () => {
-      fetchTellersLog();
-      fetchLatestPayments();
-      fetchTotalRentalCollections();
-      fetchTotalReceivables();
-      fetchTotalVehiclesInCustody();
-      fetchTotalCheckOuts();
+    const initialFetch = async () => {
+      setLoading(true);
+      await fetchAllData();
+      setLoading(false);
     };
 
-    // Perform initial fetch
-    fetchData();
+    initialFetch();
 
     // Set up interval for periodic fetching
-    const intervalId = setInterval(() => {
-      fetchData();
-    }, 5000); // 5000 ms = 5 seconds
+    const intervalId = setInterval(fetchAllData, 5000); // 5000 ms = 5 seconds
 
     // Cleanup the interval on component unmount
     return () => clearInterval(intervalId);
+  }, []);
+
+  useEffect(() => {
+    fetchAllData();
   }, [startDate, selectedDateType, selectedBranch]);
+
+  if (loading) {
+    return (
+      <div className="flex gap-2 w-screen h-screen m-auto justify-center items-center bg-amber-400/70">
+        <div className="w-5 h-5 rounded-full animate-pulse bg-neutral-800"></div>
+        <div className="w-5 h-5 rounded-full animate-pulse bg-neutral-800"></div>
+        <div className="w-5 h-5 rounded-full animate-pulse bg-neutral-800"></div>
+      </div>
+    );
+  }
 
   return (
     <main className="bg-stone-50 w-full max-w-screen min-w-screen flex flex-col items-center">

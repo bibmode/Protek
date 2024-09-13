@@ -3,33 +3,75 @@
 import Link from "next/link";
 import { FaSignOutAlt } from "react-icons/fa";
 import Image from "next/image";
-import { useRouter } from "next/navigation"; // Use 'next/navigation' here
+import { useRouter } from "next/navigation";
 import { Supabase } from "/utils/supabase/client"; // Adjust this import path as needed
-import { useState } from "react";
+import { useState, useContext, useEffect } from "react";
+import { AuthContext } from "../authContext";
+import { format } from "date-fns";
+import { toast } from "react-toastify";
 
 const Navbar = () => {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { isAuthenticated, setIsAuthenticated } = useContext(AuthContext);
+  const [tellerId, setTellerId] = useState(null);
+
+  useEffect(() => {
+    // Retrieve tellerId from both localStorage and cookie when component mounts
+    const storedTellerId = localStorage.getItem("tellerId");
+    const cookieTellerId = document.cookie.replace(
+      /(?:(?:^|.*;\s*)tellerId\s*\=\s*([^;]*).*$)|^.*$/,
+      "$1"
+    );
+
+    if (storedTellerId || cookieTellerId) {
+      setTellerId(storedTellerId || cookieTellerId);
+    }
+  }, []);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      // Sign out from Supabase
+      if (!tellerId) {
+        throw new Error("Teller ID not found. Please log in again.");
+      }
+
+      const currentDate = new Date();
+      const date = format(currentDate, "yyyy-MM-dd");
+      const logoutTime = format(currentDate, "HH:mm:ss");
+
+      const { error: updateError } = await Supabase.from("tellers_log")
+        .update({ logout_time: logoutTime })
+        .eq("teller_id", tellerId)
+        .eq("date", date);
+
+      if (updateError) {
+        console.error("Failed to update logout time:", updateError);
+        throw new Error("Failed to record logout time. Please try again.");
+      }
+
       const { error } = await Supabase.auth.signOut();
       if (error) throw error;
 
-      // Clear any local storage items
+      // Clear tellerId from both localStorage and cookie
       localStorage.removeItem("tellerId");
+      document.cookie =
+        "tellerId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 
-      // Redirect to login page
+      setIsAuthenticated(false);
+      toast.success("Logged out successfully");
       router.push("/login");
     } catch (error) {
       console.error("Error logging out:", error);
-      alert("Failed to log out. Please try again.");
+      toast.error(error.message || "Failed to log out. Please try again.");
     } finally {
       setIsLoggingOut(false);
     }
   };
+
+  if (!isAuthenticated) {
+    return null; // Don't render the navbar if not authenticated
+  }
 
   return (
     <div className="w-full bg-neutral-800 flex justify-center text-white">
@@ -38,7 +80,7 @@ const Navbar = () => {
         <div className="flex justify-between w-[600px]">
           <Link
             className={`py-2 ${
-              router.asPath === "/" ? "font-semibold text-2xl" : ""
+              router.pathname === "/" ? "font-semibold text-2xl" : ""
             }`}
             href="/"
           >
@@ -46,7 +88,7 @@ const Navbar = () => {
           </Link>
           <Link
             className={`py-2 ${
-              router.asPath === "/lots" ? "font-semibold text-2xl" : ""
+              router.pathname === "/lots" ? "font-semibold text-2xl" : ""
             }`}
             href="/lots"
           >
