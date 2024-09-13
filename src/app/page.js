@@ -409,6 +409,9 @@ export default function Home() {
           break;
       }
 
+      // Log the generated date range
+      console.log("Generated Date Range:", dateRange);
+
       // Fetch data from Supabase
       const { data, error } = await Supabase.rpc(
         "get_vehicle_data_for_dashboard"
@@ -454,8 +457,7 @@ export default function Home() {
               isInCustody =
                 (isSameDay(itemCheckinDate, startOfWeekRange) ||
                   isBefore(itemCheckinDate, endOfWeekRange)) &&
-                (isAfter(itemCheckoutDate, startOfWeekRange) ||
-                  isSameDay(itemCheckoutDate, endOfWeekRange));
+                isAfter(itemCheckoutDate, endOfWeekRange);
               break;
 
             case "monthly":
@@ -479,6 +481,9 @@ export default function Home() {
           }
         });
       });
+
+      // Log the total vehicles in custody array
+      console.log("Total Vehicles in Custody:", totalVehiclesInCustody);
 
       setTotalVehiclesInCustody(totalVehiclesInCustody);
     } catch (error) {
