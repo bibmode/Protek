@@ -783,39 +783,27 @@ export default function Home() {
     }
   };
 
-  const fetchAllData = async () => {
-    try {
-      await Promise.all([
-        fetchTellersLog(),
-        fetchLatestPayments(),
-        fetchTotalRentalCollections(),
-        fetchTotalReceivables(),
-        fetchTotalVehiclesInCustody(),
-        fetchTotalCheckOuts(),
-      ]);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    }
-  };
-
   useEffect(() => {
-    const initialFetch = async () => {
-      setLoading(true);
-      await fetchAllData();
-      setLoading(false);
+    const fetchData = () => {
+      fetchTellersLog();
+      fetchLatestPayments();
+      fetchTotalRentalCollections();
+      fetchTotalReceivables();
+      fetchTotalVehiclesInCustody();
+      fetchTotalCheckOuts();
     };
 
-    initialFetch();
+    // Perform initial fetch
+    fetchData();
 
     // Set up interval for periodic fetching
-    const intervalId = setInterval(fetchAllData, 5000); // 5000 ms = 5 seconds
+    const intervalId = setInterval(() => {
+      fetchData();
+    }, 5000); // 5000 ms = 5 seconds
 
+    setLoading(false);
     // Cleanup the interval on component unmount
     return () => clearInterval(intervalId);
-  }, []);
-
-  useEffect(() => {
-    fetchAllData();
   }, [startDate, selectedDateType, selectedBranch]);
 
   if (loading) {
