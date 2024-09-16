@@ -817,9 +817,9 @@ export default function Home() {
   }
 
   return (
-    <main className="bg-stone-50 w-full max-w-screen min-w-screen flex flex-col items-center">
+    <main className="bg-stone-50 w-full max-w-screen min-w-screen items-center">
       <Navbar />
-      <div className="max-w-[1440px] w-full px-9 flex flex-col flex-1 pb-10">
+      <div className="max-w-[1440px] w-full px-9 grid pb-10  mx-auto">
         <div className="flex w-full items-center">
           <div className="mr-auto pt-11 pb-9">
             <p className="text-3xl font-regular">Dashboard</p>
@@ -862,11 +862,11 @@ export default function Home() {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-5 mt-5 flex-1">
+        <div className="grid grid-cols-2 gap-5 mt-5">
           {/* latest payments */}
           <LatestPayments latestPayments={latestPayments} />
 
-          <div className="grid gap-5 grid-rows-5">
+          <div className="grid gap-5">
             {/* vehicles in custody */}
             <VehiclesList />
 

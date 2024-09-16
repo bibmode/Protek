@@ -19,7 +19,7 @@ const TellersLog = ({ tellersLog }) => {
   };
 
   return (
-    <div className="overflow-hidden">
+    <div className="overflow-y-auto h-[130px]">
       <div className="grid grid-cols-8 gap-2 px-4 pt-4 text-[0.8rem] text-gray-500">
         <p className="pl-2 col-span-2">Teller</p>
         <p className="text-center col-span-2">Date</p>
@@ -27,7 +27,7 @@ const TellersLog = ({ tellersLog }) => {
         <p className="text-center">Time-Out</p>
         <p className="text-center col-span-2">Branch</p>
       </div>
-      <div className="overflow-y-auto max-h-[400px]">
+      <div className="overflow-y-auto">
         {" "}
         {/* Adjust max height as needed */}
         {tellersLog.length > 0 ? (
