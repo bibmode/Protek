@@ -1,7 +1,7 @@
 import { Inter } from "next/font/google";
 import React from "react";
 import { AuthProvider } from "/src/app/authContext";
-import AuthGuard from "/src/app/AuthGuard";
+import AuthGuard from "/src/app/authGuard";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
