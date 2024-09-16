@@ -11,7 +11,7 @@ const LatestPayments = ({ latestPayments = [], error = null }) => {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 pb-4 h-full">
+    <div className="bg-white rounded-2xl border border-gray-200 pb-4 h-[630px]">
       <div className="p-4 flex justify-between border-b border-gray-200">
         <div className="pl-2">
           <p className="text-[0.900rem] font-medium">Latest Payments</p>
@@ -26,35 +26,37 @@ const LatestPayments = ({ latestPayments = [], error = null }) => {
       </div>
 
       {/* labels */}
-      <div className="grid grid-cols-4 gap-2 p-4 text-[0.8rem] text-gray-500">
-        <p className="pl-2">Name</p>
-        <p className="text-center">Amount</p>
-        <p className="text-center">Method</p>
-        <p className="text-center">Branch</p>
-      </div>
+      <div className="overflow-y-auto">
+        <div className="grid grid-cols-4 gap-2 p-4 text-[0.8rem] text-gray-500">
+          <p className="pl-2">Name</p>
+          <p className="text-center">Amount</p>
+          <p className="text-center">Method</p>
+          <p className="text-center">Branch</p>
+        </div>
 
-      {/* items */}
-      {latestPayments.length > 0 ? (
-        latestPayments.map((payment, index) => (
-          <div
-            key={index}
-            className="grid grid-cols-4 gap-2 px-4 pt-1 pb-[0.8rem] text-[0.7rem]"
-          >
-            <p className="pl-2">{payment.owner_name}</p>
-            <p className="text-center">
-              ₱ {parseFloat(payment.total).toFixed(2)}
-            </p>
-            <p className="text-center first-letter:uppercase">
-              {payment.method}
-            </p>
-            <p className="text-center">{payment.branch_name}</p>
-          </div>
-        ))
-      ) : (
-        <p className="text-center text-gray-500 py-4 text-[0.8rem]">
-          No recent payments.
-        </p>
-      )}
+        {/* items */}
+        {latestPayments.length > 0 ? (
+          latestPayments.map((payment, index) => (
+            <div
+              key={index}
+              className="grid grid-cols-4 gap-2 px-4 pt-1 pb-[0.8rem] text-[0.7rem]"
+            >
+              <p className="pl-2">{payment.owner_name}</p>
+              <p className="text-center">
+                ₱ {parseFloat(payment.total).toFixed(2)}
+              </p>
+              <p className="text-center first-letter:uppercase">
+                {payment.method}
+              </p>
+              <p className="text-center">{payment.branch_name}</p>
+            </div>
+          ))
+        ) : (
+          <p className="text-center text-gray-500 py-4 text-[0.8rem]">
+            No recent payments.
+          </p>
+        )}
+      </div>
     </div>
   );
 };
