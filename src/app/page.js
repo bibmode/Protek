@@ -830,10 +830,6 @@ export default function Home() {
             selectedBranch={selectedBranch}
             setSelectedBranch={setSelectedBranch}
           />
-          <button className="ml-3 h-[46px] w-[100px] bg-white hover:bg-neutral-100 border border-gray-200 px-4 py-2 rounded-md flex justify-center items-center">
-            <IoFilterSharp />
-            <p className="text-sm ml-2">Filter</p>
-          </button>
           <DateComponent
             onDateChange={handleDateChange}
             onDateTypeChange={handleDateTypeChange}

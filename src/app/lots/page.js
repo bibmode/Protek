@@ -2,22 +2,27 @@
 
 import { useState, useEffect, useRef } from "react";
 import { IoMdCalendar } from "react-icons/io";
-import { IoFilterSharp } from "react-icons/io5";
+import { IoCarSport, IoFilterSharp } from "react-icons/io5";
 import { FaChevronDown, FaCity } from "react-icons/fa6";
 import Navbar from "../components/Navbar";
 import BranchButton from "../components/BranchButton";
 import { GiHomeGarage } from "react-icons/gi";
 import Image from "next/image";
+import AddNewCarModal from "./component/AddNewCar";
 
 export default function Lots() {
   const [openDrawer, setOpenDrawer] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [isModalOpen, setModalOpen] = useState(false);
+  const [isCarModalOpen, setCarModalOpen] = useState(false);
   const [selectedPhase, setSelectedPhase] = useState("");
   const [selectedLot, setSelectedLot] = useState("");
   const [selectedBranch, setSelectedBranch] = useState(
     "Butuan City (Main Branch)"
   );
+
+  const handleOpenCarModal = () => setCarModalOpen(true);
+  const handleCloseCarModal = () => setCarModalOpen(false);
 
   const handleOpenModal = () => setModalOpen(true);
   const handleCloseModal = () => setModalOpen(false);
@@ -194,6 +199,23 @@ export default function Lots() {
           </div>
 
           <button
+            onClick={handleOpenCarModal}
+            className="ml-3 h-[46px] bg-white hover:bg-neutral-100 border border-gray-200 px-4 py-2 rounded-md flex justify-center items-center"
+          >
+            <div className="text-2xl">
+              <IoCarSport />
+            </div>
+            <p className="text-sm ml-2">Add New Car</p>
+          </button>
+          {isCarModalOpen && (
+            <AddNewCarModal
+              isOpen={isCarModalOpen}
+              handleCloseCarModal={handleCloseCarModal}
+              handleSubmit={handleSubmit}
+            />
+          )}
+
+          <button
             onClick={handleOpenModal}
             className="ml-3 h-[46px] bg-white hover:bg-neutral-100 border border-gray-200 px-4 py-2 rounded-md flex justify-center items-center"
           >
@@ -217,10 +239,7 @@ export default function Lots() {
                 <form onSubmit={handleSubmit} className="mt-4">
                   <div className="flex justify-center items-center mx-auto">
                     <div className="mb-4 items-center justify-center w-full">
-                      <label
-                        htmlFor="phase"
-                        className="block font-medium text-neutral-800 pr-3"
-                      >
+                      <label className="block font-medium text-neutral-800 pr-3">
                         Phase:
                       </label>
                       <select
@@ -235,10 +254,7 @@ export default function Lots() {
                         <option value="phase3">Phase 3 (Motorcycles)</option>
                       </select>{" "}
                       <br></br>
-                      <label
-                        htmlFor="phase"
-                        className="block font-medium text-neutral-800 pr-3"
-                      >
+                      <label className="block font-medium text-neutral-800 pr-3">
                         Lot:
                       </label>
                       <select
@@ -268,10 +284,6 @@ export default function Lots() {
             </div>
           )}
           <BranchButton />
-          <button className="ml-3 h-[46px] w-[100px] bg-white hover:bg-neutral-100 border border-gray-200 px-4 py-2 rounded-md flex justify-center items-center">
-            <IoFilterSharp />
-            <p className="text-sm ml-2">Filter</p>
-          </button>
           <button className="ml-3 h-[46px] bg-white hover:bg-neutral-100 border border-gray-200 px-4 py-2 rounded-md flex items-center">
             <IoMdCalendar className="text-2xl" />
             <p className="text-sm mx-2">September 5, 2024</p>

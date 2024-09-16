@@ -43,8 +43,13 @@ const LatestPayments = ({ latestPayments = [], error = null }) => {
             >
               <p className="pl-2">{payment.owner_name}</p>
               <p className="text-center">
-                ₱ {parseFloat(payment.total).toFixed(2)}
+                ₱{" "}
+                {parseFloat(payment.total).toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </p>
+
               <p className="text-center first-letter:uppercase">
                 {payment.method}
               </p>
