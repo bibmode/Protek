@@ -34,6 +34,10 @@ import {
   endOfMonth,
   subMonths,
   subWeeks,
+  startOfYear,
+  endOfYear,
+  isSameYear,
+  isWithinInterval,
 } from "date-fns";
 import LatestPayments from "./components/LatestPayments";
 import VehiclesList from "./components/VehiclesList";
@@ -53,6 +57,10 @@ export default function Home() {
     Array(6).fill(0)
   );
   const [totalCheckOuts, setTotalCheckOuts] = useState(Array(6).fill(0));
+  const [latestPayments, setLatestPayments] = useState([]);
+  const [vehiclesList, setVehiclesList] = useState([]);
+  const [tellersLog, setTellersLog] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const handleDateChange = (date) => {
     setStartDate(date);
@@ -357,7 +365,6 @@ export default function Home() {
           })
             .map((date) => format(date, "yyyy"))
             .slice(-6);
-          console.log("Yearly Date Range:", dateRange);
           break;
 
         case "monthly":
@@ -367,7 +374,6 @@ export default function Home() {
           })
             .map((date) => format(date, "yyyy-MM"))
             .slice(-6);
-          console.log("Monthly Date Range:", dateRange);
           break;
 
         case "daily":
@@ -377,7 +383,6 @@ export default function Home() {
           })
             .map((date) => format(date, "yyyy-MM-dd"))
             .slice(-6);
-          console.log("Daily Date Range:", dateRange);
           break;
 
         case "weekly":
@@ -393,7 +398,6 @@ export default function Home() {
               end: format(endOfWeek(date, { weekStartsOn: 0 }), "yyyy-MM-dd"),
             }))
             .slice(-6);
-          console.log("Weekly Date Range:", dateRange);
           break;
 
         default:
@@ -403,7 +407,6 @@ export default function Home() {
           })
             .map((date) => format(date, "yyyy-MM"))
             .slice(-6);
-          console.log("Default (Monthly) Date Range:", dateRange);
           break;
       }
 
@@ -452,8 +455,7 @@ export default function Home() {
               isInCustody =
                 (isSameDay(itemCheckinDate, startOfWeekRange) ||
                   isBefore(itemCheckinDate, endOfWeekRange)) &&
-                (isAfter(itemCheckoutDate, startOfWeekRange) ||
-                  isSameDay(itemCheckoutDate, endOfWeekRange));
+                isAfter(itemCheckoutDate, endOfWeekRange);
               break;
 
             case "monthly":
@@ -477,11 +479,6 @@ export default function Home() {
           }
         });
       });
-
-      console.log(
-        `Total Vehicles In Custody (${selectedDateType}):`,
-        totalVehiclesInCustody
-      );
 
       setTotalVehiclesInCustody(totalVehiclesInCustody);
     } catch (error) {
@@ -570,13 +567,13 @@ export default function Home() {
       const totalCheckOuts = dateRange.map((range) => {
         const rangeData = data.filter((item) => {
           if (!item.checkout_date) {
-            return false; // Skip items with null or undefined checkout_date
+            return false;
           }
 
           const itemDate = parseDate(item.checkout_date);
           if (!itemDate) {
             console.warn(`Invalid date encountered: ${item.checkout_date}`);
-            return false; // Skip this item
+            return false;
           }
 
           const formattedItemDate = format(itemDate, "yyyy-MM-dd");
@@ -627,9 +624,169 @@ export default function Home() {
     }
   };
 
+  const fetchLatestPayments = async () => {
+    try {
+      const dateType = selectedDateType || "monthly";
+
+      // Use the provided startDate or default to current date
+      const currentDate = startDate ? new Date(startDate) : new Date();
+
+      // Calculate the start of the period based on dateType
+      let periodStart;
+      switch (dateType) {
+        case "yearly":
+          periodStart = startOfYear(currentDate);
+          break;
+        case "monthly":
+          periodStart = startOfMonth(currentDate);
+          break;
+        case "weekly":
+          periodStart = startOfWeek(currentDate, { weekStartsOn: 0 }); // Assuming weeks start on Sunday
+          break;
+        case "daily":
+          periodStart = startOfDay(currentDate);
+          break;
+        default:
+          periodStart = startOfMonth(currentDate);
+      }
+
+      const { data, error } = await Supabase.rpc(
+        "get_latest_payments_for_dashboard"
+      );
+
+      if (error) throw error;
+
+      // Client-side filtering
+      const filteredData = data.filter((item) => {
+        if (!item.verified_date) return false;
+
+        const itemDate = new Date(item.verified_date);
+
+        let isInPeriod;
+        switch (dateType) {
+          case "yearly":
+            isInPeriod = isSameYear(itemDate, currentDate);
+            break;
+          case "monthly":
+            isInPeriod = isSameMonth(itemDate, currentDate);
+            break;
+          case "weekly":
+            isInPeriod = isWithinInterval(itemDate, {
+              start: periodStart,
+              end: endOfWeek(currentDate, { weekStartsOn: 0 }),
+            });
+            break;
+          case "daily":
+            isInPeriod = isSameDay(itemDate, currentDate);
+            break;
+          default:
+            isInPeriod = isSameMonth(itemDate, currentDate);
+        }
+
+        return (
+          (!selectedBranch || item.branch_name === selectedBranch) && isInPeriod
+        );
+      });
+
+      // Sort and format as before
+      const sortedPayments = filteredData.sort(
+        (a, b) => new Date(b.verified_date) - new Date(a.verified_date)
+      );
+
+      const formattedPayments = sortedPayments.map((payment) => ({
+        branch_name: payment.branch_name,
+        verified_date: format(
+          parseISO(payment.verified_date),
+          "MMMM d, yyyy @ hh:mm a"
+        ),
+        total: payment.total,
+        owner_name: payment.owner_name,
+        method: payment.method,
+      }));
+
+      setLatestPayments(formattedPayments);
+    } catch (error) {
+      console.error("Error fetching recent payments:", error);
+      setLatestPayments([]);
+    }
+  };
+
+  const fetchTellersLog = async () => {
+    try {
+      const dateType = selectedDateType || "monthly";
+
+      const currentDate = startDate ? new Date(startDate) : new Date();
+
+      // Calculate the start and end of the period based on dateType
+      let periodStart, periodEnd;
+      switch (dateType) {
+        case "yearly":
+          periodStart = startOfYear(currentDate);
+          periodEnd = endOfYear(currentDate);
+          break;
+        case "monthly":
+          periodStart = startOfMonth(currentDate);
+          periodEnd = endOfMonth(currentDate);
+          break;
+        case "weekly":
+          periodStart = startOfWeek(currentDate, { weekStartsOn: 0 }); // Assuming weeks start on Sunday
+          periodEnd = endOfWeek(currentDate, { weekStartsOn: 0 });
+          break;
+        case "daily":
+          periodStart = startOfDay(currentDate);
+          periodEnd = endOfDay(currentDate);
+          break;
+        default:
+          periodStart = startOfMonth(currentDate);
+          periodEnd = endOfMonth(currentDate);
+      }
+
+      const { data, error } = await Supabase.rpc(
+        "get_tellers_log_for_dashboard"
+      );
+
+      if (error) throw error;
+
+      // Client-side filtering
+      const filteredData = data.filter((item) => {
+        if (!item.log_date) return false;
+
+        const itemDate = new Date(item.log_date);
+
+        const isInPeriod = isWithinInterval(itemDate, {
+          start: periodStart,
+          end: periodEnd,
+        });
+
+        return (
+          (!selectedBranch || item.branch_name === selectedBranch) && isInPeriod
+        );
+      });
+
+      // Sort and format as before
+      const sortedTellersLogs = filteredData.sort(
+        (a, b) => new Date(b.log_date) - new Date(a.log_date)
+      );
+
+      const formattedTellersLogs = sortedTellersLogs.map((log) => ({
+        teller_name: log.teller_name,
+        log_date: format(parseISO(log.log_date), "MMMM d, yyyy"),
+        login_time: log.login_time,
+        logout_time: log.logout_time,
+        branch_name: log.branch_name,
+      }));
+
+      setTellersLog(formattedTellersLogs);
+    } catch (error) {
+      console.error("Error fetching tellers log:", error);
+      setTellersLog([]);
+    }
+  };
+
   useEffect(() => {
-    // Function to perform the initial and periodic fetching
     const fetchData = () => {
+      fetchTellersLog();
+      fetchLatestPayments();
       fetchTotalRentalCollections();
       fetchTotalReceivables();
       fetchTotalVehiclesInCustody();
@@ -644,9 +801,20 @@ export default function Home() {
       fetchData();
     }, 5000); // 5000 ms = 5 seconds
 
+    setLoading(false);
     // Cleanup the interval on component unmount
     return () => clearInterval(intervalId);
   }, [startDate, selectedDateType, selectedBranch]);
+
+  if (loading) {
+    return (
+      <div className="flex gap-2 w-screen h-screen m-auto justify-center items-center bg-amber-400/70">
+        <div className="w-5 h-5 rounded-full animate-pulse bg-neutral-800"></div>
+        <div className="w-5 h-5 rounded-full animate-pulse bg-neutral-800"></div>
+        <div className="w-5 h-5 rounded-full animate-pulse bg-neutral-800"></div>
+      </div>
+    );
+  }
 
   return (
     <main className="bg-stone-50 w-full max-w-screen min-w-screen flex flex-col items-center">
@@ -696,7 +864,7 @@ export default function Home() {
 
         <div className="grid grid-cols-2 gap-5 mt-5 flex-1">
           {/* latest payments */}
-          <LatestPayments />
+          <LatestPayments latestPayments={latestPayments} />
 
           <div className="grid gap-5 grid-rows-5">
             {/* vehicles in custody */}
@@ -718,7 +886,7 @@ export default function Home() {
               </div>
 
               {/* logs */}
-              <TellersLog />
+              <TellersLog tellersLog={tellersLog} />
             </div>
           </div>
         </div>

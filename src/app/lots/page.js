@@ -32,6 +32,24 @@ export default function Lots() {
 
   const handleSubmit = (event) => {
     event.preventDefault();
+
+    if (!selectedPhase || !selectedLot) {
+      alert("Please select both phase and lot.");
+      return;
+    }
+
+    const phaseMapping = {
+      phase1: "p1",
+      phase2: "p2",
+      phase3: "p3",
+    };
+
+    const phaseCode = phaseMapping[selectedPhase];
+
+    const spaceCode = `bxu-${phaseCode}${selectedLot.toLowerCase()}`;
+
+    console.log("Generated Space Code:", spaceCode);
+
     handleCloseModal();
   };
 
@@ -171,7 +189,7 @@ export default function Lots() {
         {/* top filters */}
         <div className="flex w-full items-center">
           <div className="mr-auto pt-11 pb-9">
-            <p className="text-3xl font-regular">Dashboard</p>
+            <p className="text-3xl font-regular">Parking Lots</p>
             <p className="">All branches overview</p>
           </div>
 
