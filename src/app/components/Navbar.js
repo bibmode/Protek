@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FaSignOutAlt } from "react-icons/fa";
+import { FaRegWindowClose, FaSignOutAlt } from "react-icons/fa";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Supabase } from "/utils/supabase/client"; // Adjust this import path as needed
@@ -15,6 +15,8 @@ const Navbar = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { isAuthenticated, setIsAuthenticated } = useContext(AuthContext);
   const [tellerId, setTellerId] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
   useEffect(() => {
     // Retrieve tellerId from both localStorage and cookie when component mounts
@@ -75,9 +77,80 @@ const Navbar = () => {
 
   return (
     <div className="w-full bg-neutral-800 flex justify-center text-white">
-      <div className="flex w-full justify-between items-center text-sm p-2 mx-7">
-        <p className="mr-4 text-2xl font-bold">PROTEK</p>
-        <div className="flex justify-between w-[600px]">
+      <div className="flex w-full justify-between items-center text-sm p-2 mx-7 z-10">
+        <div className="md:flex items-center">
+          <div className="xl:hidden">
+            <button
+              className="rounded-2xl shadow-inherit navbar-burger flex items-center text-amber-600 pr-3"
+              onClick={toggleMobileMenu}
+            >
+              <svg
+                className="block h-6 w-6 fill-current"
+                viewBox="0 0 20 20"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M0 3h20v2H0V3zm0 6h20v2H0V9zm0 6h20v2H0v-2z"></path>
+              </svg>
+            </button>
+          </div>
+          <div
+            className={`text-neutral-800 absolute top-0 left-0 w-full h-auto opacity-100 bg-stone-50 transform ${
+              isMobileMenuOpen ? "translate-y-0" : "-translate-y-full"
+            } transition-transform duration-300 xl:hidden`}
+          >
+            {isMobileMenuOpen && (
+              <div className="mobile-menu mt-5">
+                <button
+                  onClick={toggleMobileMenu}
+                  className="flex w-full items-right pr-5"
+                >
+                  <div className="text-2xl flex justify-between items-center w-full px-5">
+                    <Image src="/icon.ico" alt="logo" width={40} height={40} />
+                    <p className="pl-3 text-2xl font-bold mr-auto">PROTEK</p>
+                    <FaRegWindowClose />
+                  </div>
+                </button>
+              </div>
+            )}
+
+            <ul className="p-5 mb-5 md:mb-2">
+              <li className="block p-2 text-center font-semibold hover:bg-amber-50 hover:text-amber-600 rounded border-t border-b">
+                <Link
+                  className={`py-2 ${
+                    router.pathname === "/" ? "font-semibold text-2xl" : ""
+                  }`}
+                  href="/"
+                >
+                  Dashboard
+                </Link>
+              </li>
+              <li className="block p-2 text-center font-semibold hover:bg-amber-50 hover:text-amber-600 rounded border-b">
+                <Link
+                  className={`py-2 ${
+                    router.pathname === "/lots" ? "font-semibold text-2xl" : ""
+                  }`}
+                  href="/lots"
+                >
+                  Parking Lots
+                </Link>
+              </li>
+              <li className="block p-2 text-center font-semibold hover:bg-amber-50 hover:text-amber-600 rounded border-b">
+                <p className="">History</p>
+              </li>
+              <li className="block p-2 text-center font-semibold hover:bg-amber-50 hover:text-amber-600 rounded border-b">
+                <p className="">Payments</p>
+              </li>
+              <li className="block p-2 text-center font-semibold hover:bg-amber-50 hover:text-amber-600 rounded border-b">
+                <p className="">Financial</p>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <Link href="/" className="text-2xl font-bold mr-auto">
+          PROTEK
+        </Link>
+        <div className="hidden xl:flex justify-between w-[600px] mr-auto">
           <Link
             className={`py-2 ${
               router.pathname === "/" ? "font-semibold text-2xl" : ""

@@ -836,7 +836,7 @@ export default function Home() {
           />
         </div>
 
-        <div className="grid grid-cols-4 gap-5">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-5">
           <RentalCollections
             totalRentalCollections={totalRentalCollections}
             selectedDateType={selectedDateType}
