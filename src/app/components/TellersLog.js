@@ -4,7 +4,7 @@ import { format, parse } from "date-fns";
 const TellersLog = ({ tellersLog }) => {
   // Function to safely parse and format time
   const parseAndFormatTime = (time) => {
-    if (!time) return "N/A";
+    if (!time) return "-";
     // Attempt to parse and format the time
     try {
       const [hours, minutes] = time.split(":");

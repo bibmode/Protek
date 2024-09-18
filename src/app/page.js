@@ -641,7 +641,7 @@ export default function Home() {
           periodStart = startOfMonth(currentDate);
           break;
         case "weekly":
-          periodStart = startOfWeek(currentDate, { weekStartsOn: 0 }); // Assuming weeks start on Sunday
+          periodStart = startOfWeek(currentDate, { weekStartsOn: 0 });
           break;
         case "daily":
           periodStart = startOfDay(currentDate);
@@ -783,8 +783,125 @@ export default function Home() {
     }
   };
 
+  const fetchVehiclesList = async () => {
+    try {
+      const dateType = selectedDateType || "monthly";
+
+      // Use the provided startDate or default to current date
+      const currentDate = startDate ? new Date(startDate) : new Date();
+
+      // Calculate the start of the period based on dateType
+      let periodStart;
+      switch (dateType) {
+        case "yearly":
+          periodStart = startOfYear(currentDate);
+          break;
+        case "monthly":
+          periodStart = startOfMonth(currentDate);
+          break;
+        case "weekly":
+          periodStart = startOfWeek(currentDate, { weekStartsOn: 0 });
+          break;
+        case "daily":
+          periodStart = startOfDay(currentDate);
+          break;
+        default:
+          periodStart = startOfMonth(currentDate);
+      }
+
+      // Fetch data from Supabase
+      const { data, error } = await Supabase.rpc(
+        "get_vehicle_list_for_dashboard"
+      );
+
+      if (error) {
+        console.error("Error fetching data:", error.message || error);
+        return;
+      }
+
+      if (!data || !Array.isArray(data)) {
+        console.error("Unexpected data format:", data);
+        return;
+      }
+
+      // Client-side filtering
+      const filteredData = data.filter((item) => {
+        const checkinDate = new Date(item.checkin_date);
+
+        let isInPeriod;
+        switch (dateType) {
+          case "yearly":
+            isInPeriod = isSameYear(checkinDate, currentDate);
+            break;
+          case "monthly":
+            isInPeriod = isSameMonth(checkinDate, currentDate);
+            break;
+          case "weekly":
+            isInPeriod = isWithinInterval(checkinDate, {
+              start: periodStart,
+              end: endOfWeek(currentDate, { weekStartsOn: 0 }),
+            });
+            break;
+          case "daily":
+            isInPeriod = isSameDay(checkinDate, currentDate);
+            break;
+          default:
+            isInPeriod = isSameMonth(checkinDate, currentDate);
+        }
+
+        return (
+          (!selectedBranch || item.branch_name === selectedBranch) && isInPeriod
+        );
+      });
+
+      // Process and group data
+      const groupedData = filteredData.reduce((acc, item) => {
+        if (!acc[item.type]) {
+          acc[item.type] = {
+            type: item.type,
+            quantity: 0,
+            collectedFees: 0,
+            receivables: 0,
+          };
+        }
+
+        // Increment quantity
+        acc[item.type].quantity += 1;
+
+        // Add to collectedFees
+        acc[item.type].collectedFees += parseFloat(item.paid) || 0;
+
+        // Calculate receivables
+        const checkinDate = new Date(item.checkin_date);
+        const checkoutDate = item.checkout_date
+          ? new Date(item.checkout_date)
+          : new Date(); // Use current date if checkout_date is null
+        const days = Math.ceil(
+          (checkoutDate - checkinDate) / (1000 * 60 * 60 * 24)
+        );
+        const totalCharge = days * item.daily_rate;
+        const paid = parseFloat(item.paid) || 0;
+        const fees = totalCharge * 0.41;
+        const overall = totalCharge + fees;
+        acc[item.type].receivables += overall - paid;
+
+        return acc;
+      }, {});
+
+      // Convert to array and sort by type
+      const result = Object.values(groupedData).sort((a, b) =>
+        a.type.localeCompare(b.type)
+      );
+
+      setVehiclesList(result);
+    } catch (error) {
+      console.error("Error in fetchVehiclesList:", error.message || error);
+    }
+  };
+
   useEffect(() => {
     const fetchData = () => {
+      fetchVehiclesList();
       fetchTellersLog();
       fetchLatestPayments();
       fetchTotalRentalCollections();
@@ -864,7 +981,7 @@ export default function Home() {
 
           <div className="grid gap-5">
             {/* vehicles in custody */}
-            <VehiclesList />
+            <VehiclesList vehiclesList={vehiclesList} />
 
             {/* logs */}
             <div className="bg-white rounded-2xl border row-span-2 border-gray-200 pb-4">
