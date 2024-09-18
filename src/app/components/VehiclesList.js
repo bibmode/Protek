@@ -18,7 +18,7 @@ const VehiclesList = ({ vehiclesList }) => {
       </div>
 
       {/* labels */}
-      <div className="grid grid-cols-4 gap-2 p-4 text-[0.8rem] text-gray-500">
+      <div className="overflow-y-auto grid grid-cols-4 gap-2 p-4 text-[0.8rem] text-gray-500">
         <p className="pl-3">Type</p>
         <p className="text-center">Quantity</p>
         <p className="text-center">Collected Fees</p>
@@ -26,29 +26,35 @@ const VehiclesList = ({ vehiclesList }) => {
       </div>
 
       {/* items */}
-      {vehiclesList.map((vehicle, index) => (
-        <div
-          key={index}
-          className={`grid grid-cols-4 gap-2 px-4 py-[0.8rem] text-[0.7rem] pt-1`}
-        >
-          <p className="pl-3">{vehicle.type}</p>
-          <p className="text-center">{vehicle.quantity}</p>
-          <p className="text-center">
-            ₱{" "}
-            {vehicle.collectedFees.toLocaleString("en-US", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
-          </p>
-          <p className="text-center">
-            ₱{" "}
-            {vehicle.receivables.toLocaleString("en-US", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
-          </p>
+      {vehiclesList.length === 0 ? (
+        <div className="pt-24 p-4 text-center text-gray-500 text-xs my-auto">
+          No data available.
         </div>
-      ))}
+      ) : (
+        vehiclesList.map((vehicle, index) => (
+          <div
+            key={index}
+            className={`overflow-y-auto grid grid-cols-4 gap-2 px-4 py-[0.8rem] text-[0.7rem] pt-1`}
+          >
+            <p className="pl-3">{vehicle.type}</p>
+            <p className="text-center">{vehicle.quantity}</p>
+            <p className="text-center">
+              ₱{" "}
+              {vehicle.collectedFees.toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </p>
+            <p className="text-center">
+              ₱{" "}
+              {vehicle.receivables.toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </p>
+          </div>
+        ))
+      )}
     </div>
   );
 };

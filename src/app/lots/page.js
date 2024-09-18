@@ -9,6 +9,7 @@ import BranchButton from "../components/BranchButton";
 import { GiHomeGarage } from "react-icons/gi";
 import Image from "next/image";
 import AddNewCarModal from "./component/AddNewCar";
+import LotDateComponent from "./component/LotDateComponent";
 
 export default function Lots() {
   const [openDrawer, setOpenDrawer] = useState(false);
@@ -20,6 +21,13 @@ export default function Lots() {
   const [selectedBranch, setSelectedBranch] = useState(
     "Butuan City (Main Branch)"
   );
+
+  const [startDate, setStartDate] = useState(new Date());
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleDateChange = (date) => {
+    setStartDate(date);
+  };
 
   const handleOpenCarModal = () => setCarModalOpen(true);
   const handleCloseCarModal = () => setCarModalOpen(false);
@@ -283,12 +291,14 @@ export default function Lots() {
               </div>
             </div>
           )}
-          <BranchButton />
-          <button className="ml-3 h-[46px] bg-white hover:bg-neutral-100 border border-gray-200 px-4 py-2 rounded-md flex items-center">
-            <IoMdCalendar className="text-2xl" />
-            <p className="text-sm mx-2">September 5, 2024</p>
-            <FaChevronDown />
-          </button>
+          <BranchButton
+            selectedBranch={selectedBranch}
+            setSelectedBranch={setSelectedBranch}
+          />
+          <LotDateComponent
+            startDate={startDate}
+            onDateChange={handleDateChange}
+          />
         </div>
 
         {/* table */}

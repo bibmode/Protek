@@ -105,7 +105,14 @@ const Navbar = () => {
                   className="flex w-full items-right pr-5"
                 >
                   <div className="text-2xl flex justify-between items-center w-full px-5">
-                    <Image src="/icon.ico" alt="logo" width={40} height={40} />
+                    <div className="bg-neutral-700 rounded-lg p-[2px]">
+                      <Image
+                        src="/icon.ico"
+                        alt="logo"
+                        width={25}
+                        height={25}
+                      />
+                    </div>
                     <p className="pl-3 text-2xl font-bold mr-auto">PROTEK</p>
                     <FaRegWindowClose />
                   </div>
@@ -147,7 +154,10 @@ const Navbar = () => {
           </div>
         </div>
 
-        <Link href="/" className="text-2xl font-bold mr-auto">
+        <Link href="/" className="text-2xl font-bold mr-auto flex items-center">
+          <div className="bg-neutral-700 rounded-lg p-[2px] mr-3">
+            <Image src="/icon.ico" alt="logo" width={25} height={25} />
+          </div>
           PROTEK
         </Link>
         <div className="hidden xl:flex justify-between w-[600px] mr-auto">
