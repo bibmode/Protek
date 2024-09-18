@@ -787,26 +787,58 @@ export default function Home() {
     try {
       const dateType = selectedDateType || "monthly";
 
-      // Use the provided startDate or default to current date
-      const currentDate = startDate ? new Date(startDate) : new Date();
+      // Robust date parsing
+      let currentDate;
+      if (startDate instanceof Date) {
+        currentDate = startDate;
+      } else if (typeof startDate === "string") {
+        // Try parsing as ISO date first
+        currentDate = parseISO(startDate);
 
-      // Calculate the start of the period based on dateType
-      let periodStart;
+        // If parsing fails (invalid date), try alternative formats
+        if (isNaN(currentDate.getTime())) {
+          // For YYYY format
+          if (/^\d{4}$/.test(startDate)) {
+            currentDate = new Date(parseInt(startDate), 0, 1);
+          }
+          // For YYYY-MM format
+          else if (/^\d{4}-\d{2}$/.test(startDate)) {
+            const [year, month] = startDate.split("-");
+            currentDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+          }
+          // If all parsing attempts fail, use current date
+          else {
+            console.warn("Invalid date format. Using current date.");
+            currentDate = new Date();
+          }
+        }
+      } else {
+        console.warn("Invalid startDate. Using current date.");
+        currentDate = new Date();
+      }
+
+      // Calculate the start and end of the period based on dateType
+      let periodStart, periodEnd;
       switch (dateType) {
         case "yearly":
           periodStart = startOfYear(currentDate);
+          periodEnd = endOfYear(currentDate);
           break;
         case "monthly":
           periodStart = startOfMonth(currentDate);
+          periodEnd = endOfMonth(currentDate);
           break;
         case "weekly":
           periodStart = startOfWeek(currentDate, { weekStartsOn: 0 });
+          periodEnd = endOfWeek(currentDate, { weekStartsOn: 0 });
           break;
         case "daily":
           periodStart = startOfDay(currentDate);
+          periodEnd = endOfDay(currentDate);
           break;
         default:
           periodStart = startOfMonth(currentDate);
+          periodEnd = endOfMonth(currentDate);
       }
 
       // Fetch data from Supabase
@@ -826,31 +858,48 @@ export default function Home() {
 
       // Client-side filtering
       const filteredData = data.filter((item) => {
-        const checkinDate = new Date(item.checkin_date);
+        const checkinDate = parseISO(item.checkin_date);
+        const checkoutDate = item.checkout_date
+          ? parseISO(item.checkout_date)
+          : addYears(checkinDate, 1); // Add 1 year for null checkout dates
 
-        let isInPeriod;
+        let isInCustody;
         switch (dateType) {
           case "yearly":
-            isInPeriod = isSameYear(checkinDate, currentDate);
+            isInCustody =
+              checkinDate.getFullYear() <= currentDate.getFullYear() &&
+              checkoutDate.getFullYear() > currentDate.getFullYear();
             break;
           case "monthly":
-            isInPeriod = isSameMonth(checkinDate, currentDate);
+            isInCustody =
+              isBefore(checkinDate, endOfMonth(currentDate)) &&
+              isAfter(checkoutDate, endOfMonth(currentDate));
             break;
           case "weekly":
-            isInPeriod = isWithinInterval(checkinDate, {
-              start: periodStart,
-              end: endOfWeek(currentDate, { weekStartsOn: 0 }),
-            });
+            isInCustody =
+              isBefore(
+                checkinDate,
+                endOfWeek(currentDate, { weekStartsOn: 0 })
+              ) &&
+              isAfter(
+                checkoutDate,
+                endOfWeek(currentDate, { weekStartsOn: 0 })
+              );
             break;
           case "daily":
-            isInPeriod = isSameDay(checkinDate, currentDate);
+            isInCustody =
+              isBefore(checkinDate, endOfDay(currentDate)) &&
+              isAfter(checkoutDate, endOfDay(currentDate));
             break;
           default:
-            isInPeriod = isSameMonth(checkinDate, currentDate);
+            isInCustody =
+              isBefore(checkinDate, endOfMonth(currentDate)) &&
+              isAfter(checkoutDate, endOfMonth(currentDate));
         }
 
         return (
-          (!selectedBranch || item.branch_name === selectedBranch) && isInPeriod
+          (!selectedBranch || item.branch_name === selectedBranch) &&
+          isInCustody
         );
       });
 
@@ -872,13 +921,15 @@ export default function Home() {
         acc[item.type].collectedFees += parseFloat(item.paid) || 0;
 
         // Calculate receivables
-        const checkinDate = new Date(item.checkin_date);
+        const checkinDate = parseISO(item.checkin_date);
         const checkoutDate = item.checkout_date
-          ? new Date(item.checkout_date)
-          : new Date(); // Use current date if checkout_date is null
+          ? parseISO(item.checkout_date)
+          : addYears(checkinDate, 1); // Use 1 year after check-in for null checkout dates
+
         const days = Math.ceil(
           (checkoutDate - checkinDate) / (1000 * 60 * 60 * 24)
         );
+
         const totalCharge = days * item.daily_rate;
         const paid = parseFloat(item.paid) || 0;
         const fees = totalCharge * 0.41;
