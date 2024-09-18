@@ -4,16 +4,12 @@ import { useState, useEffect, useRef } from "react";
 import { FaCity } from "react-icons/fa";
 import { Supabase } from "/utils/supabase/client"; // Ensure this is the correct path
 
-const BranchButton = () => {
+const BranchButton = ({ selectedBranch, setSelectedBranch }) => {
   const [branches, setBranches] = useState([]);
-  const [selectedBranch, setSelectedBranch] = useState(
-    "Butuan City (Main Branch)"
-  ); // Initial branch
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null); // Ref for dropdown container
 
   useEffect(() => {
-    // Fetch branches with id, branch_name, contact_info, and address from Supabase
     const fetchBranches = async () => {
       const { data, error } = await Supabase.from("branches").select(
         "id, branch_name, contact_info, address"
@@ -23,31 +19,26 @@ const BranchButton = () => {
         console.error("Error fetching branches:", error);
       } else {
         setBranches(data);
-        // Check if "Butuan City (Main Branch)" exists in the fetched data and set it as the selected branch
         const defaultBranch = data.find(
           (branch) => branch.branch_name === "Butuan City (Main Branch)"
         );
-        if (defaultBranch) {
+        if (defaultBranch && !selectedBranch) {
           setSelectedBranch(defaultBranch.branch_name);
         }
       }
     };
 
     fetchBranches();
-  }, []);
+  }, [selectedBranch, setSelectedBranch]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // Close the dropdown if the user clicks outside of it
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     };
 
-    // Add event listener to detect clicks outside the dropdown
     document.addEventListener("mousedown", handleClickOutside);
-
-    // Clean up event listener on component unmount
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
