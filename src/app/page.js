@@ -225,142 +225,163 @@ export default function Home() {
 
   const fetchTotalReceivables = async () => {
     try {
-      let dateRange = [];
-      const currentDate = new Date(startDate);
+      const dateType = selectedDateType || "monthly";
 
-      // Generate date ranges based on selectedDateType
-      const generateDateRanges = () => {
-        switch (selectedDateType || "weekly") {
-          case "yearly":
-            return eachYearOfInterval({
-              start: new Date(currentDate.getFullYear() - 5, 0, 1),
-              end: currentDate,
-            })
-              .map((date) => ({
-                start: startOfYear(date),
-                end: endOfYear(date),
-              }))
-              .slice(-6);
-          case "monthly":
-            return eachMonthOfInterval({
-              start: startOfMonth(subMonths(currentDate, 5)),
-              end: currentDate,
-            })
-              .map((date) => ({
-                start: startOfMonth(date),
-                end: endOfMonth(date),
-              }))
-              .slice(-6);
-          case "daily":
-            return eachDayOfInterval({
-              start: subDays(currentDate, 5),
-              end: currentDate,
-            })
-              .map((date) => ({
-                start: startOfDay(date),
-                end: endOfDay(date),
-              }))
-              .slice(-6);
-          case "weekly":
-          default:
-            return eachWeekOfInterval({
-              start: startOfWeek(subWeeks(currentDate, 5), { weekStartsOn: 0 }),
-              end: currentDate,
-            })
-              .map((date) => ({
-                start: startOfWeek(date, { weekStartsOn: 0 }),
-                end: endOfWeek(date, { weekStartsOn: 0 }),
-              }))
-              .slice(-6);
+      // Robust date parsing
+      let currentDate;
+      if (startDate instanceof Date) {
+        currentDate = startDate;
+      } else if (typeof startDate === "string") {
+        currentDate = parseISO(startDate);
+        if (isNaN(currentDate.getTime())) {
+          if (/^\d{4}$/.test(startDate)) {
+            currentDate = new Date(parseInt(startDate), 0, 1);
+          } else if (/^\d{4}-\d{2}$/.test(startDate)) {
+            const [year, month] = startDate.split("-");
+            currentDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+          } else {
+            console.warn("Invalid date format. Using current date.");
+            currentDate = new Date();
+          }
         }
-      };
+      } else {
+        console.warn("Invalid startDate. Using current date.");
+        currentDate = new Date();
+      }
 
-      dateRange = generateDateRanges();
+      // Define date range
+      let dateRange;
+      switch (dateType) {
+        case "yearly":
+          dateRange = eachYearOfInterval({
+            start: new Date(currentDate.getFullYear() - 5, 0, 1),
+            end: currentDate,
+          }).slice(-6);
+          break;
+        case "monthly":
+          dateRange = eachMonthOfInterval({
+            start: new Date(
+              currentDate.getFullYear(),
+              currentDate.getMonth() - 5,
+              1
+            ),
+            end: currentDate,
+          }).slice(-6);
+          break;
+        case "weekly":
+          dateRange = eachWeekOfInterval(
+            {
+              start: new Date(
+                currentDate.getTime() - 5 * 7 * 24 * 60 * 60 * 1000
+              ),
+              end: currentDate,
+            },
+            { weekStartsOn: 0 }
+          ).slice(-6);
+          break;
+        case "daily":
+          dateRange = eachDayOfInterval({
+            start: new Date(currentDate.getTime() - 5 * 24 * 60 * 60 * 1000),
+            end: currentDate,
+          }).slice(-6);
+          break;
+        default:
+          throw new Error("Invalid date type");
+      }
 
       // Fetch data from Supabase
       const { data, error } = await Supabase.rpc(
-        "get_total_receivables_for_dashboard"
+        "get_vehicle_list_for_dashboard"
       );
 
       if (error) {
         console.error("Error fetching data:", error.message || error);
-        throw error;
+        return;
       }
 
       if (!data || !Array.isArray(data)) {
         console.error("Unexpected data format:", data);
-        throw new Error("Unexpected data format");
+        return;
       }
 
-      // Initialize totalReceivables array
-      const totalReceivables = Array(dateRange.length).fill(0);
-
-      // Process total receivables
-      data.forEach((item) => {
-        if (item.branch_name !== selectedBranch) return;
-
-        const checkinDate = parseISO(item.checkin_date);
-        const checkoutDate = item.checkout_date
-          ? parseISO(item.checkout_date)
-          : currentDate;
-        const dailyRate = parseFloat(item.daily_rate);
-        const paid = parseFloat(item.paid) || 0;
-
-        // Validate parsed dates and rate
-        if (
-          !isValid(checkinDate) ||
-          !isValid(checkoutDate) ||
-          isNaN(dailyRate)
-        ) {
-          console.warn("Invalid date or rate in data:", item);
-          return;
+      // Calculate receivables for each period
+      const result = dateRange.map((periodDate) => {
+        let periodStart, periodEnd;
+        switch (dateType) {
+          case "yearly":
+            periodStart = startOfYear(periodDate);
+            periodEnd = endOfYear(periodDate);
+            break;
+          case "monthly":
+            periodStart = startOfMonth(periodDate);
+            periodEnd = endOfMonth(periodDate);
+            break;
+          case "weekly":
+            periodStart = startOfWeek(periodDate, { weekStartsOn: 0 });
+            periodEnd = endOfWeek(periodDate, { weekStartsOn: 0 });
+            break;
+          case "daily":
+            periodStart = startOfDay(periodDate);
+            periodEnd = endOfDay(periodDate);
+            break;
         }
 
-        const totalDays = differenceInDays(checkoutDate, checkinDate) + 1;
+        const periodReceivables = data.reduce((total, item) => {
+          const checkinDate = parseISO(item.checkin_date);
+          const checkoutDate = item.checkout_date
+            ? parseISO(item.checkout_date)
+            : addYears(currentDate, 1);
 
-        dateRange.forEach((range, index) => {
-          const { start: rangeStart, end: rangeEnd } = range;
-
+          // Check if the period overlaps with the vehicle's rental period
           if (
-            areIntervalsOverlapping(
-              { start: rangeStart, end: rangeEnd },
-              { start: checkinDate, end: checkoutDate }
-            )
+            isAfter(periodStart, checkoutDate) ||
+            isBefore(periodEnd, checkinDate)
           ) {
-            const overlapStart = max([rangeStart, checkinDate]);
-            const overlapEnd = min([rangeEnd, checkoutDate]);
-            const daysInRange = differenceInDays(overlapEnd, overlapStart) + 1;
-
-            // Compute daily subtotal and fees
-            const subtotal = daysInRange * dailyRate;
-            const fees = subtotal * 0.41;
-            const totalReceivable = subtotal + fees;
-
-            // Adjust based on payments
-            const applicableDays = Math.min(totalDays, daysInRange);
-            const dailyPayment = totalDays > 0 ? paid / totalDays : 0;
-            const receivableAfterPayment =
-              totalReceivable - dailyPayment * applicableDays;
-
-            totalReceivables[index] += Math.max(0, receivableAfterPayment);
+            return total;
           }
-        });
+
+          if (selectedBranch && item.branch_name !== selectedBranch) {
+            return total;
+          }
+
+          const daysInPeriod = Math.min(
+            Math.ceil((periodEnd - checkinDate) / (1000 * 60 * 60 * 24)),
+            Math.ceil((checkoutDate - periodStart) / (1000 * 60 * 60 * 24))
+          );
+
+          const totalCharge = daysInPeriod * parseFloat(item.daily_rate);
+          const fees = totalCharge * 0.41;
+          const overall = totalCharge + fees;
+
+          // Only subtract paid amount if startDate is within the vehicle's rental period
+          let paidAmount = 0;
+          if (
+            isWithinInterval(startDate, {
+              start: checkinDate,
+              end: checkoutDate,
+            })
+          ) {
+            paidAmount = parseFloat(item.paid) || 0;
+          }
+
+          return total + (overall - paidAmount);
+        }, 0);
+
+        return parseFloat(periodReceivables.toFixed(2));
       });
 
-      console.log("Date Range:", dateRange);
-      console.log("Total Receivables:", totalReceivables);
-      setTotalReceivables(totalReceivables);
+      // Ensure we always have exactly 6 values
+      const finalResult = result.slice(-6);
+      while (finalResult.length < 6) {
+        finalResult.unshift(0);
+      }
+
+      console.log("Processed totalReceivables:", finalResult);
+
+      setTotalReceivables(finalResult);
     } catch (error) {
-      console.error(
-        "Error fetching total receivables:",
-        error.message || error
-      );
-      console.error("Current state:", {
-        startDate,
-        selectedDateType,
-        selectedBranch,
-      });
-      setTotalReceivables(Array(6).fill(0)); // Default to array of 6 zeros in case of error
+      console.error("Error in fetchTotalReceivables:", error.message || error);
+      setTotalReceivables(Array(6).fill(0)); // Reset to initial state on error
     }
   };
 
