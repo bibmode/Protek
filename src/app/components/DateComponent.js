@@ -8,7 +8,7 @@ import { format, endOfToday, startOfWeek, endOfWeek } from "date-fns";
 const DateComponent = ({ onDateChange, onDateTypeChange }) => {
   const [startDate, setStartDate] = useState(new Date());
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedDateType, setSelectedDateType] = useState("monthly");
+  const [selectedDateType, setSelectedDateType] = useState("daily");
 
   const handleDateChange = (date) => {
     if (date) {

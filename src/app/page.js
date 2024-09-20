@@ -52,7 +52,7 @@ export default function Home() {
   const [selectedBranch, setSelectedBranch] = useState(
     "Butuan City (Main Branch)"
   );
-  const [selectedDateType, setSelectedDateType] = useState("monthly");
+  const [selectedDateType, setSelectedDateType] = useState("daily");
   const [totalRentalCollections, setTotalRentalCollections] = useState(
     Array(6).fill(0)
   );
@@ -85,7 +85,7 @@ export default function Home() {
       const currentDate = new Date(startDate);
 
       const getDateRange = () => {
-        switch (selectedDateType || "monthly") {
+        switch (selectedDateType || "daily") {
           case "yearly":
             return eachYearOfInterval({
               start: new Date(currentDate.getFullYear() - 5, 0, 1),
@@ -225,7 +225,7 @@ export default function Home() {
 
   const fetchTotalReceivables = async () => {
     try {
-      const dateType = selectedDateType || "monthly";
+      const dateType = selectedDateType || "daily";
 
       // Robust date parsing
       let currentDate;
@@ -391,7 +391,7 @@ export default function Home() {
       const currentDate = new Date(startDate);
 
       // Generate date ranges based on selectedDateType
-      switch (selectedDateType || "monthly") {
+      switch (selectedDateType || "daily") {
         case "yearly":
           dateRange = eachYearOfInterval({
             start: new Date(currentDate.getFullYear() - 5, 0, 1),
@@ -526,7 +526,7 @@ export default function Home() {
       let dateRange;
       const currentDate = new Date(startDate);
 
-      switch (selectedDateType || "monthly") {
+      switch (selectedDateType || "daily") {
         case "yearly":
           dateRange = eachYearOfInterval({
             start: new Date(currentDate.getFullYear() - 5, 0, 1),
@@ -660,7 +660,7 @@ export default function Home() {
 
   const fetchLatestPayments = async () => {
     try {
-      const dateType = selectedDateType || "monthly";
+      const dateType = selectedDateType || "daily";
 
       // Use the provided startDate or default to current date
       const currentDate = startDate ? new Date(startDate) : new Date();
@@ -747,7 +747,7 @@ export default function Home() {
 
   const fetchTellersLog = async () => {
     try {
-      const dateType = selectedDateType || "monthly";
+      const dateType = selectedDateType || "daily";
 
       const currentDate = startDate ? new Date(startDate) : new Date();
 
@@ -819,7 +819,7 @@ export default function Home() {
 
   const fetchVehiclesList = async () => {
     try {
-      const dateType = selectedDateType || "monthly";
+      const dateType = selectedDateType || "daily";
 
       // Robust date parsing
       let currentDate;
