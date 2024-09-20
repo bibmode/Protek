@@ -2,7 +2,6 @@
 
 import { Supabase } from "/utils/supabase/client";
 import { IoIosArrowForward } from "react-icons/io";
-import { IoFilterSharp } from "react-icons/io5";
 import BranchButton from "./components/BranchButton";
 import DateComponent from "./components/DateComponent";
 import Navbar from "./components/Navbar";
@@ -12,6 +11,10 @@ import Receivables from "./components/Receivables";
 import VehiclesInCustody from "./components/VehiclesInCustody";
 import CheckOuts from "./components/CheckOuts";
 import {
+  min,
+  max,
+  differenceInDays,
+  areIntervalsOverlapping,
   parse,
   subDays,
   isValid,
@@ -38,6 +41,7 @@ import {
   endOfYear,
   isSameYear,
   isWithinInterval,
+  subYears,
 } from "date-fns";
 import LatestPayments from "./components/LatestPayments";
 import VehiclesList from "./components/VehiclesList";
@@ -221,67 +225,59 @@ export default function Home() {
 
   const fetchTotalReceivables = async () => {
     try {
-      let dateRange;
+      let dateRange = [];
       const currentDate = new Date(startDate);
 
-      switch (selectedDateType || "monthly") {
-        case "yearly":
-          dateRange = eachYearOfInterval({
-            start: new Date(currentDate.getFullYear() - 5, 0, 1),
-            end: new Date(currentDate.getFullYear(), 11, 31),
-          })
-            .map((date) => format(date, "yyyy"))
-            .slice(-6);
-          break;
+      // Generate date ranges based on selectedDateType
+      const generateDateRanges = () => {
+        switch (selectedDateType || "weekly") {
+          case "yearly":
+            return eachYearOfInterval({
+              start: new Date(currentDate.getFullYear() - 5, 0, 1),
+              end: currentDate,
+            })
+              .map((date) => ({
+                start: startOfYear(date),
+                end: endOfYear(date),
+              }))
+              .slice(-6);
+          case "monthly":
+            return eachMonthOfInterval({
+              start: startOfMonth(subMonths(currentDate, 5)),
+              end: currentDate,
+            })
+              .map((date) => ({
+                start: startOfMonth(date),
+                end: endOfMonth(date),
+              }))
+              .slice(-6);
+          case "daily":
+            return eachDayOfInterval({
+              start: subDays(currentDate, 5),
+              end: currentDate,
+            })
+              .map((date) => ({
+                start: startOfDay(date),
+                end: endOfDay(date),
+              }))
+              .slice(-6);
+          case "weekly":
+          default:
+            return eachWeekOfInterval({
+              start: startOfWeek(subWeeks(currentDate, 5), { weekStartsOn: 0 }),
+              end: currentDate,
+            })
+              .map((date) => ({
+                start: startOfWeek(date, { weekStartsOn: 0 }),
+                end: endOfWeek(date, { weekStartsOn: 0 }),
+              }))
+              .slice(-6);
+        }
+      };
 
-        case "monthly":
-          dateRange = eachMonthOfInterval({
-            start: startOfMonth(
-              new Date(currentDate.getFullYear(), currentDate.getMonth() - 5, 1)
-            ),
-            end: endOfMonth(currentDate),
-          })
-            .map((date) => format(date, "yyyy-MM"))
-            .slice(-6);
-          break;
+      dateRange = generateDateRanges();
 
-        case "daily":
-          dateRange = eachDayOfInterval({
-            start: startOfDay(
-              new Date(currentDate.getTime() - 5 * 24 * 60 * 60 * 1000)
-            ),
-            end: endOfDay(currentDate),
-          })
-            .map((date) => format(date, "yyyy-MM-dd"))
-            .slice(-6);
-          break;
-
-        case "weekly":
-          const weeks = eachWeekOfInterval({
-            start: startOfWeek(
-              new Date(currentDate.getTime() - 6 * 7 * 24 * 60 * 60 * 1000),
-              { weekStartsOn: 0 }
-            ),
-            end: endOfWeek(currentDate, { weekStartsOn: 0 }), // Weeks end on Saturday
-          }).map((date) => ({
-            start: format(startOfWeek(date, { weekStartsOn: 0 }), "yyyy-MM-dd"),
-            end: format(endOfWeek(date, { weekStartsOn: 0 }), "yyyy-MM-dd"),
-          }));
-          dateRange = weeks.slice(-6);
-          break;
-
-        default:
-          dateRange = eachMonthOfInterval({
-            start: startOfMonth(
-              new Date(currentDate.getFullYear(), currentDate.getMonth() - 5, 1)
-            ),
-            end: endOfMonth(currentDate),
-          })
-            .map((date) => format(date, "yyyy-MM"))
-            .slice(-6);
-          break;
-      }
-
+      // Fetch data from Supabase
       const { data, error } = await Supabase.rpc(
         "get_total_receivables_for_dashboard"
       );
@@ -296,46 +292,63 @@ export default function Home() {
         throw new Error("Unexpected data format");
       }
 
-      const totalReceivables = dateRange.map((range) => {
-        const rangeData = data.filter((item) => {
-          const itemDate = parseDate(item.payment_date);
-          if (!itemDate) {
-            console.warn(`Invalid date encountered: ${item.payment_date}`);
-            return false; // Skip this item
+      // Initialize totalReceivables array
+      const totalReceivables = Array(dateRange.length).fill(0);
+
+      // Process total receivables
+      data.forEach((item) => {
+        if (item.branch_name !== selectedBranch) return;
+
+        const checkinDate = parseISO(item.checkin_date);
+        const checkoutDate = item.checkout_date
+          ? parseISO(item.checkout_date)
+          : currentDate;
+        const dailyRate = parseFloat(item.daily_rate);
+        const paid = parseFloat(item.paid) || 0;
+
+        // Validate parsed dates and rate
+        if (
+          !isValid(checkinDate) ||
+          !isValid(checkoutDate) ||
+          isNaN(dailyRate)
+        ) {
+          console.warn("Invalid date or rate in data:", item);
+          return;
+        }
+
+        const totalDays = differenceInDays(checkoutDate, checkinDate) + 1;
+
+        dateRange.forEach((range, index) => {
+          const { start: rangeStart, end: rangeEnd } = range;
+
+          if (
+            areIntervalsOverlapping(
+              { start: rangeStart, end: rangeEnd },
+              { start: checkinDate, end: checkoutDate }
+            )
+          ) {
+            const overlapStart = max([rangeStart, checkinDate]);
+            const overlapEnd = min([rangeEnd, checkoutDate]);
+            const daysInRange = differenceInDays(overlapEnd, overlapStart) + 1;
+
+            // Compute daily subtotal and fees
+            const subtotal = daysInRange * dailyRate;
+            const fees = subtotal * 0.41;
+            const totalReceivable = subtotal + fees;
+
+            // Adjust based on payments
+            const applicableDays = Math.min(totalDays, daysInRange);
+            const dailyPayment = totalDays > 0 ? paid / totalDays : 0;
+            const receivableAfterPayment =
+              totalReceivable - dailyPayment * applicableDays;
+
+            totalReceivables[index] += Math.max(0, receivableAfterPayment);
           }
-
-          const formattedItemDate = format(itemDate, "yyyy-MM-dd");
-
-          let isMatchingDate = false;
-          switch (selectedDateType) {
-            case "daily":
-              isMatchingDate = formattedItemDate === range;
-              break;
-            case "monthly":
-              isMatchingDate = format(itemDate, "yyyy-MM") === range;
-              break;
-            case "yearly":
-              isMatchingDate = format(itemDate, "yyyy") === range;
-              break;
-            case "weekly":
-              isMatchingDate =
-                formattedItemDate >= range.start &&
-                formattedItemDate <= range.end;
-              break;
-            default:
-              isMatchingDate = format(itemDate, "yyyy-MM") === range;
-              break;
-          }
-
-          return isMatchingDate && item.branch_name === selectedBranch;
         });
-
-        return rangeData.reduce(
-          (acc, item) => acc + parseFloat(item.total_receivables || 0),
-          0
-        );
       });
 
+      console.log("Date Range:", dateRange);
+      console.log("Total Receivables:", totalReceivables);
       setTotalReceivables(totalReceivables);
     } catch (error) {
       console.error(
@@ -347,7 +360,7 @@ export default function Home() {
         selectedDateType,
         selectedBranch,
       });
-      setTotalReceivables(Array(6).fill(0)); // Default to array of 0 in case of error
+      setTotalReceivables(Array(6).fill(0)); // Default to array of 6 zeros in case of error
     }
   };
 
@@ -861,7 +874,12 @@ export default function Home() {
         const checkinDate = parseISO(item.checkin_date);
         const checkoutDate = item.checkout_date
           ? parseISO(item.checkout_date)
-          : addYears(checkinDate, 1); // Add 1 year for null checkout dates
+          : addYears(currentDate, 1); // Add 1 year for null checkout dates
+
+        // Check if startDate is beyond checkoutDate
+        if (isAfter(currentDate, checkoutDate)) {
+          return false;
+        }
 
         let isInCustody;
         switch (dateType) {
@@ -924,13 +942,13 @@ export default function Home() {
         const checkinDate = parseISO(item.checkin_date);
         const checkoutDate = item.checkout_date
           ? parseISO(item.checkout_date)
-          : addYears(checkinDate, 1); // Use 1 year after check-in for null checkout dates
+          : endOfDay(currentDate); // Use current date for null checkout dates
 
         const days = Math.ceil(
           (checkoutDate - checkinDate) / (1000 * 60 * 60 * 24)
         );
 
-        const totalCharge = days * item.daily_rate;
+        const totalCharge = days * parseFloat(item.daily_rate);
         const paid = parseFloat(item.paid) || 0;
         const fees = totalCharge * 0.41;
         const overall = totalCharge + fees;
