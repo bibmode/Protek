@@ -14,7 +14,7 @@ import LotDateComponent from "./component/LotDateComponent";
 export default function Lots() {
   const [openDrawer, setOpenDrawer] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
-  const [isModalOpen, setModalOpen] = useState(false);
+  const [isLotModalOpen, setLotModalOpen] = useState(false);
   const [isCarModalOpen, setCarModalOpen] = useState(false);
   const [selectedPhase, setSelectedPhase] = useState("");
   const [selectedLot, setSelectedLot] = useState("");
@@ -32,8 +32,8 @@ export default function Lots() {
   const handleOpenCarModal = () => setCarModalOpen(true);
   const handleCloseCarModal = () => setCarModalOpen(false);
 
-  const handleOpenModal = () => setModalOpen(true);
-  const handleCloseModal = () => setModalOpen(false);
+  const handleOpenLotModal = () => setLotModalOpen(true);
+  const handleCloseLotModal = () => setLotModalOpen(false);
 
   const handleLotChange = (event) => {
     setSelectedLot(event.target.value);
@@ -63,7 +63,7 @@ export default function Lots() {
 
     console.log("Generated Space Code:", spaceCode);
 
-    handleCloseModal();
+    handleCloseLotModal();
   };
 
   const handleItemClick = (vehicle) => {
@@ -206,15 +206,41 @@ export default function Lots() {
             <p className="">All branches overview</p>
           </div>
 
-          <button
-            onClick={handleOpenCarModal}
-            className="ml-3 h-[46px] bg-white hover:bg-neutral-100 border border-gray-200 px-4 py-2 rounded-md flex justify-center items-center"
-          >
-            <div className="text-2xl">
-              <IoCarSport />
+          <div className="flex">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 xl:gap-0">
+              <button
+                onClick={handleOpenCarModal}
+                className="ml-3 w-[160px] h-[46px] bg-white hover:bg-neutral-100 border border-gray-200 px-4 py-2 rounded-md flex justify-center items-center"
+              >
+                <div className="text-2xl">
+                  <IoCarSport />
+                </div>
+                <p className="text-sm ml-2">Add New Car</p>
+              </button>
+
+              <button
+                onClick={handleOpenLotModal}
+                className="ml-3 w-[160px] h-[46px] bg-white hover:bg-neutral-100 border border-gray-200 px-4 py-2 rounded-md flex justify-center items-center"
+              >
+                <div className="text-2xl">
+                  <GiHomeGarage />
+                </div>
+                <p className="text-sm ml-2">Add New Lot</p>
+              </button>
             </div>
-            <p className="text-sm ml-2">Add New Car</p>
-          </button>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 xl:gap-0">
+              <BranchButton
+                selectedBranch={selectedBranch}
+                setSelectedBranch={setSelectedBranch}
+              />
+              <LotDateComponent
+                startDate={startDate}
+                onDateChange={handleDateChange}
+              />
+            </div>
+          </div>
+
           {isCarModalOpen && (
             <AddNewCarModal
               isOpen={isCarModalOpen}
@@ -223,22 +249,12 @@ export default function Lots() {
             />
           )}
 
-          <button
-            onClick={handleOpenModal}
-            className="ml-3 h-[46px] bg-white hover:bg-neutral-100 border border-gray-200 px-4 py-2 rounded-md flex justify-center items-center"
-          >
-            <div className="text-2xl">
-              <GiHomeGarage />
-            </div>
-            <p className="text-sm ml-2">Add New Lot</p>
-          </button>
-
           {/* Modal */}
-          {isModalOpen && (
+          {isLotModalOpen && (
             <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50">
-              <div className="bg-white p-4 rounded-2xl shadow-lg relative w-1/4">
+              <div className="bg-white p-4 rounded-2xl shadow-lg relative w-[480px]">
                 <button
-                  onClick={handleCloseModal}
+                  onClick={handleCloseLotModal}
                   className="absolute top-2 right-2 text-2xl text-gray-500 hover:text-gray-700"
                 >
                   &times;
@@ -291,14 +307,6 @@ export default function Lots() {
               </div>
             </div>
           )}
-          <BranchButton
-            selectedBranch={selectedBranch}
-            setSelectedBranch={setSelectedBranch}
-          />
-          <LotDateComponent
-            startDate={startDate}
-            onDateChange={handleDateChange}
-          />
         </div>
 
         {/* table */}

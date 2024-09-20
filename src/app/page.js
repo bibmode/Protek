@@ -2,7 +2,6 @@
 
 import { Supabase } from "/utils/supabase/client";
 import { IoIosArrowForward } from "react-icons/io";
-import { IoFilterSharp } from "react-icons/io5";
 import BranchButton from "./components/BranchButton";
 import DateComponent from "./components/DateComponent";
 import Navbar from "./components/Navbar";
@@ -12,6 +11,10 @@ import Receivables from "./components/Receivables";
 import VehiclesInCustody from "./components/VehiclesInCustody";
 import CheckOuts from "./components/CheckOuts";
 import {
+  min,
+  max,
+  differenceInDays,
+  areIntervalsOverlapping,
   parse,
   subDays,
   isValid,
@@ -38,6 +41,7 @@ import {
   endOfYear,
   isSameYear,
   isWithinInterval,
+  subYears,
 } from "date-fns";
 import LatestPayments from "./components/LatestPayments";
 import VehiclesList from "./components/VehiclesList";
@@ -48,7 +52,7 @@ export default function Home() {
   const [selectedBranch, setSelectedBranch] = useState(
     "Butuan City (Main Branch)"
   );
-  const [selectedDateType, setSelectedDateType] = useState("monthly");
+  const [selectedDateType, setSelectedDateType] = useState("daily");
   const [totalRentalCollections, setTotalRentalCollections] = useState(
     Array(6).fill(0)
   );
@@ -81,7 +85,7 @@ export default function Home() {
       const currentDate = new Date(startDate);
 
       const getDateRange = () => {
-        switch (selectedDateType || "monthly") {
+        switch (selectedDateType || "daily") {
           case "yearly":
             return eachYearOfInterval({
               start: new Date(currentDate.getFullYear() - 5, 0, 1),
@@ -221,133 +225,163 @@ export default function Home() {
 
   const fetchTotalReceivables = async () => {
     try {
-      let dateRange;
-      const currentDate = new Date(startDate);
+      const dateType = selectedDateType || "daily";
 
-      switch (selectedDateType || "monthly") {
+      // Robust date parsing
+      let currentDate;
+      if (startDate instanceof Date) {
+        currentDate = startDate;
+      } else if (typeof startDate === "string") {
+        currentDate = parseISO(startDate);
+        if (isNaN(currentDate.getTime())) {
+          if (/^\d{4}$/.test(startDate)) {
+            currentDate = new Date(parseInt(startDate), 0, 1);
+          } else if (/^\d{4}-\d{2}$/.test(startDate)) {
+            const [year, month] = startDate.split("-");
+            currentDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+          } else {
+            console.warn("Invalid date format. Using current date.");
+            currentDate = new Date();
+          }
+        }
+      } else {
+        console.warn("Invalid startDate. Using current date.");
+        currentDate = new Date();
+      }
+
+      // Define date range
+      let dateRange;
+      switch (dateType) {
         case "yearly":
           dateRange = eachYearOfInterval({
             start: new Date(currentDate.getFullYear() - 5, 0, 1),
-            end: new Date(currentDate.getFullYear(), 11, 31),
-          })
-            .map((date) => format(date, "yyyy"))
-            .slice(-6);
+            end: currentDate,
+          }).slice(-6);
           break;
-
         case "monthly":
           dateRange = eachMonthOfInterval({
-            start: startOfMonth(
-              new Date(currentDate.getFullYear(), currentDate.getMonth() - 5, 1)
+            start: new Date(
+              currentDate.getFullYear(),
+              currentDate.getMonth() - 5,
+              1
             ),
-            end: endOfMonth(currentDate),
-          })
-            .map((date) => format(date, "yyyy-MM"))
-            .slice(-6);
+            end: currentDate,
+          }).slice(-6);
           break;
-
+        case "weekly":
+          dateRange = eachWeekOfInterval(
+            {
+              start: new Date(
+                currentDate.getTime() - 5 * 7 * 24 * 60 * 60 * 1000
+              ),
+              end: currentDate,
+            },
+            { weekStartsOn: 0 }
+          ).slice(-6);
+          break;
         case "daily":
           dateRange = eachDayOfInterval({
-            start: startOfDay(
-              new Date(currentDate.getTime() - 5 * 24 * 60 * 60 * 1000)
-            ),
-            end: endOfDay(currentDate),
-          })
-            .map((date) => format(date, "yyyy-MM-dd"))
-            .slice(-6);
+            start: new Date(currentDate.getTime() - 5 * 24 * 60 * 60 * 1000),
+            end: currentDate,
+          }).slice(-6);
           break;
-
-        case "weekly":
-          const weeks = eachWeekOfInterval({
-            start: startOfWeek(
-              new Date(currentDate.getTime() - 6 * 7 * 24 * 60 * 60 * 1000),
-              { weekStartsOn: 0 }
-            ),
-            end: endOfWeek(currentDate, { weekStartsOn: 0 }), // Weeks end on Saturday
-          }).map((date) => ({
-            start: format(startOfWeek(date, { weekStartsOn: 0 }), "yyyy-MM-dd"),
-            end: format(endOfWeek(date, { weekStartsOn: 0 }), "yyyy-MM-dd"),
-          }));
-          dateRange = weeks.slice(-6);
-          break;
-
         default:
-          dateRange = eachMonthOfInterval({
-            start: startOfMonth(
-              new Date(currentDate.getFullYear(), currentDate.getMonth() - 5, 1)
-            ),
-            end: endOfMonth(currentDate),
-          })
-            .map((date) => format(date, "yyyy-MM"))
-            .slice(-6);
-          break;
+          throw new Error("Invalid date type");
       }
 
+      // Fetch data from Supabase
       const { data, error } = await Supabase.rpc(
-        "get_total_receivables_for_dashboard"
+        "get_vehicle_list_for_dashboard"
       );
 
       if (error) {
         console.error("Error fetching data:", error.message || error);
-        throw error;
+        return;
       }
 
       if (!data || !Array.isArray(data)) {
         console.error("Unexpected data format:", data);
-        throw new Error("Unexpected data format");
+        return;
       }
 
-      const totalReceivables = dateRange.map((range) => {
-        const rangeData = data.filter((item) => {
-          const itemDate = parseDate(item.payment_date);
-          if (!itemDate) {
-            console.warn(`Invalid date encountered: ${item.payment_date}`);
-            return false; // Skip this item
+      // Calculate receivables for each period
+      const result = dateRange.map((periodDate) => {
+        let periodStart, periodEnd;
+        switch (dateType) {
+          case "yearly":
+            periodStart = startOfYear(periodDate);
+            periodEnd = endOfYear(periodDate);
+            break;
+          case "monthly":
+            periodStart = startOfMonth(periodDate);
+            periodEnd = endOfMonth(periodDate);
+            break;
+          case "weekly":
+            periodStart = startOfWeek(periodDate, { weekStartsOn: 0 });
+            periodEnd = endOfWeek(periodDate, { weekStartsOn: 0 });
+            break;
+          case "daily":
+            periodStart = startOfDay(periodDate);
+            periodEnd = endOfDay(periodDate);
+            break;
+        }
+
+        const periodReceivables = data.reduce((total, item) => {
+          const checkinDate = parseISO(item.checkin_date);
+          const checkoutDate = item.checkout_date
+            ? parseISO(item.checkout_date)
+            : addYears(currentDate, 1);
+
+          // Check if the period overlaps with the vehicle's rental period
+          if (
+            isAfter(periodStart, checkoutDate) ||
+            isBefore(periodEnd, checkinDate)
+          ) {
+            return total;
           }
 
-          const formattedItemDate = format(itemDate, "yyyy-MM-dd");
-
-          let isMatchingDate = false;
-          switch (selectedDateType) {
-            case "daily":
-              isMatchingDate = formattedItemDate === range;
-              break;
-            case "monthly":
-              isMatchingDate = format(itemDate, "yyyy-MM") === range;
-              break;
-            case "yearly":
-              isMatchingDate = format(itemDate, "yyyy") === range;
-              break;
-            case "weekly":
-              isMatchingDate =
-                formattedItemDate >= range.start &&
-                formattedItemDate <= range.end;
-              break;
-            default:
-              isMatchingDate = format(itemDate, "yyyy-MM") === range;
-              break;
+          if (selectedBranch && item.branch_name !== selectedBranch) {
+            return total;
           }
 
-          return isMatchingDate && item.branch_name === selectedBranch;
-        });
+          const daysInPeriod = Math.min(
+            Math.ceil((periodEnd - checkinDate) / (1000 * 60 * 60 * 24)),
+            Math.ceil((checkoutDate - periodStart) / (1000 * 60 * 60 * 24))
+          );
 
-        return rangeData.reduce(
-          (acc, item) => acc + parseFloat(item.total_receivables || 0),
-          0
-        );
+          const totalCharge = daysInPeriod * parseFloat(item.daily_rate);
+          const fees = totalCharge * 0.41;
+          const overall = totalCharge + fees;
+
+          // Only subtract paid amount if startDate is within the vehicle's rental period
+          let paidAmount = 0;
+          if (
+            isWithinInterval(startDate, {
+              start: checkinDate,
+              end: checkoutDate,
+            })
+          ) {
+            paidAmount = parseFloat(item.paid) || 0;
+          }
+
+          return total + (overall - paidAmount);
+        }, 0);
+
+        return parseFloat(periodReceivables.toFixed(2));
       });
 
-      setTotalReceivables(totalReceivables);
+      // Ensure we always have exactly 6 values
+      const finalResult = result.slice(-6);
+      while (finalResult.length < 6) {
+        finalResult.unshift(0);
+      }
+
+      console.log("Processed totalReceivables:", finalResult);
+
+      setTotalReceivables(finalResult);
     } catch (error) {
-      console.error(
-        "Error fetching total receivables:",
-        error.message || error
-      );
-      console.error("Current state:", {
-        startDate,
-        selectedDateType,
-        selectedBranch,
-      });
-      setTotalReceivables(Array(6).fill(0)); // Default to array of 0 in case of error
+      console.error("Error in fetchTotalReceivables:", error.message || error);
+      setTotalReceivables(Array(6).fill(0)); // Reset to initial state on error
     }
   };
 
@@ -357,7 +391,7 @@ export default function Home() {
       const currentDate = new Date(startDate);
 
       // Generate date ranges based on selectedDateType
-      switch (selectedDateType || "monthly") {
+      switch (selectedDateType || "daily") {
         case "yearly":
           dateRange = eachYearOfInterval({
             start: new Date(currentDate.getFullYear() - 5, 0, 1),
@@ -492,7 +526,7 @@ export default function Home() {
       let dateRange;
       const currentDate = new Date(startDate);
 
-      switch (selectedDateType || "monthly") {
+      switch (selectedDateType || "daily") {
         case "yearly":
           dateRange = eachYearOfInterval({
             start: new Date(currentDate.getFullYear() - 5, 0, 1),
@@ -626,7 +660,7 @@ export default function Home() {
 
   const fetchLatestPayments = async () => {
     try {
-      const dateType = selectedDateType || "monthly";
+      const dateType = selectedDateType || "daily";
 
       // Use the provided startDate or default to current date
       const currentDate = startDate ? new Date(startDate) : new Date();
@@ -713,7 +747,7 @@ export default function Home() {
 
   const fetchTellersLog = async () => {
     try {
-      const dateType = selectedDateType || "monthly";
+      const dateType = selectedDateType || "daily";
 
       const currentDate = startDate ? new Date(startDate) : new Date();
 
@@ -785,7 +819,7 @@ export default function Home() {
 
   const fetchVehiclesList = async () => {
     try {
-      const dateType = selectedDateType || "monthly";
+      const dateType = selectedDateType || "daily";
 
       // Robust date parsing
       let currentDate;
@@ -861,7 +895,12 @@ export default function Home() {
         const checkinDate = parseISO(item.checkin_date);
         const checkoutDate = item.checkout_date
           ? parseISO(item.checkout_date)
-          : addYears(checkinDate, 1); // Add 1 year for null checkout dates
+          : addYears(currentDate, 1); // Add 1 year for null checkout dates
+
+        // Check if startDate is beyond checkoutDate
+        if (isAfter(currentDate, checkoutDate)) {
+          return false;
+        }
 
         let isInCustody;
         switch (dateType) {
@@ -924,13 +963,13 @@ export default function Home() {
         const checkinDate = parseISO(item.checkin_date);
         const checkoutDate = item.checkout_date
           ? parseISO(item.checkout_date)
-          : addYears(checkinDate, 1); // Use 1 year after check-in for null checkout dates
+          : endOfDay(currentDate); // Use current date for null checkout dates
 
         const days = Math.ceil(
           (checkoutDate - checkinDate) / (1000 * 60 * 60 * 24)
         );
 
-        const totalCharge = days * item.daily_rate;
+        const totalCharge = days * parseFloat(item.daily_rate);
         const paid = parseFloat(item.paid) || 0;
         const fees = totalCharge * 0.41;
         const overall = totalCharge + fees;

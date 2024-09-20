@@ -68,7 +68,7 @@ const AddNewCarModal = ({ isOpen, handleCloseCarModal, handleSubmit }) => {
               <div className="grid grid-cols-2 gap-2 justify-center items-center mx-auto">
                 <div className="col-span">
                   <label className="block text-neutral-800 text-sm pl-3">
-                    Brand
+                    Make
                   </label>
                   <input className="border border-gray-400 rounded-2xl h-12 px-3 mt-1 w-[320px]"></input>
                 </div>
@@ -86,17 +86,48 @@ const AddNewCarModal = ({ isOpen, handleCloseCarModal, handleSubmit }) => {
                 </div>
                 <div className="col-span-1">
                   <label className="block text-neutral-800 text-sm pl-3">
+                    Series
+                  </label>
+                  <input className="border border-gray-400 rounded-2xl h-12 px-3 mt-1 w-[320px]"></input>
+                </div>
+                <div className="col-span">
+                  <label className="block text-neutral-800 text-sm pl-3">
                     Year
                   </label>
                   <input className="border border-gray-400 rounded-2xl h-12 px-3 mt-1 w-[320px]"></input>
                 </div>
+                <div className="col-span-1">
+                  <label className="block text-neutral-800 text-sm pl-3">
+                    Plate Number
+                  </label>
+                  <input className="border border-gray-400 rounded-2xl h-12 px-3 mt-1 w-[320px]"></input>
+                </div>
+                <div className="col-span">
+                  <label className="block text-neutral-800 text-sm pl-3">
+                    Engine Number
+                  </label>
+                  <input className="border border-gray-400 rounded-2xl h-12 px-3 mt-1 w-[320px]"></input>
+                </div>
+                <div className="col-span-1">
+                  <label className="block text-neutral-800 text-sm pl-3">
+                    Serial/Chassis Number
+                  </label>
+                  <input className="border border-gray-400 rounded-2xl h-12 px-3 mt-1 w-[320px]"></input>
+                </div>
+                <div className="col-span">
+                  <label className="block text-neutral-800 text-sm pl-3">
+                    MV File No.
+                  </label>
+                  <input className="border border-gray-400 rounded-2xl h-12 px-3 mt-1 w-[320px]"></input>
+                </div>
+                <div className="col-span-1">
+                  <label className="block text-neutral-800 text-sm pl-3">
+                    C.R. No.
+                  </label>
+                  <input className="border border-gray-400 rounded-2xl h-12 px-3 mt-1 w-[320px]"></input>
+                </div>
               </div>
-              <label className="block text-neutral-800 pr-3 text-sm pl-3 mt-5">
-                Plate Number
-              </label>
-              <div className="flex justify-center items-center">
-                <input className="border border-gray-400 rounded-2xl h-12 px-3 mt-1 w-[650px]"></input>
-              </div>
+
               <p className="pl-3 text-left my-5 pt-2 text-sm text-gray-500">
                 VEHICLE STATUS
               </p>
@@ -118,7 +149,10 @@ const AddNewCarModal = ({ isOpen, handleCloseCarModal, handleSubmit }) => {
                 Damages
               </label>
               <div className="flex justify-center items-center">
-                <input className="border border-gray-400 rounded-2xl h-12 px-3 mt-1 w-[650px]"></input>
+                <input className="border border-gray-400 rounded-2xl h-12 px-3 mt-1 w-[600px] mr-2"></input>
+                <button className="border bg-[#F2C94C] rounded-2xl text-white text-3xl items-center flex justify-center h-12 px-3 mt-1 w-30">
+                  +
+                </button>
               </div>
               <label className="block text-neutral-800 pr-3 text-sm pl-3 mt-5">
                 Violations
@@ -133,19 +167,19 @@ const AddNewCarModal = ({ isOpen, handleCloseCarModal, handleSubmit }) => {
                 </div>
               </button>
               <div className="py-12">
-                <div className="mx-auto max-w-7xl">
+                <div className="mx-auto">
                   <p className="text-sm pl-3 font-semibold leading-tight text-gray-800 mb-4">
                     ADD IMAGES
                   </p>
                   <div
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
-                    className={`flex flex-col items-center py-12 px-6 rounded-2xl border-2 border-dashed ${
+                    className={`flex flex-col items-center py-2 px-6 rounded-2xl border-2 border-dashed ${
                       dragging ? "border-indigo-500" : "border-gray-400"
                     }`}
                   >
                     <svg
-                      className="w-12 h-12 text-gray-500"
+                      className="w-7 h-7 text-gray-500"
                       aria-hidden="true"
                       fill="none"
                       stroke="currentColor"
@@ -159,11 +193,11 @@ const AddNewCarModal = ({ isOpen, handleCloseCarModal, handleSubmit }) => {
                       />
                     </svg>
 
-                    <p className="text-xl text-gray-700">
+                    <p className="text-sm text-gray-700">
                       Drop files to upload
                     </p>
 
-                    <p className="mb-2 text-gray-700">or</p>
+                    <p className="mb-2 text-gray-700 text-xs">or</p>
 
                     <label className="bg-white px-4 h-9 inline-flex items-center rounded border border-gray-300 shadow-sm text-sm font-medium text-gray-700 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
                       Select files
