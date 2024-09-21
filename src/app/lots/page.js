@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { IoMdCalendar } from "react-icons/io";
-import { IoCarSport, IoFilterSharp } from "react-icons/io5";
-import { FaChevronDown, FaCity } from "react-icons/fa6";
+import { useState, useEffect } from "react";
+import { IoCarSport } from "react-icons/io5";
 import Navbar from "../components/Navbar";
 import BranchButton from "../components/BranchButton";
 import { GiHomeGarage } from "react-icons/gi";
 import Image from "next/image";
 import AddNewCarModal from "./component/AddNewCar";
 import LotDateComponent from "./component/LotDateComponent";
+import { Supabase } from "/utils/supabase/client";
+import { differenceInDays } from "date-fns";
+import VehicleDrawer from "./component/VehicleDrawer";
 
 export default function Lots() {
   const [openDrawer, setOpenDrawer] = useState(false);
@@ -21,7 +22,7 @@ export default function Lots() {
   const [selectedBranch, setSelectedBranch] = useState(
     "Butuan City (Main Branch)"
   );
-
+  const [vehiclesData, setVehiclesData] = useState([]);
   const [startDate, setStartDate] = useState(new Date());
   const [isOpen, setIsOpen] = useState(false);
 
@@ -76,127 +77,200 @@ export default function Lots() {
     setSelectedVehicle(null);
   };
 
+  const fetchLotAndVehicles = async () => {
+    try {
+      const { data, error } = await Supabase.rpc("get_vehicles_list_for_lots");
+      if (error) throw error;
+
+      // Get all unique lots
+      const allLots = [...new Set(data.map((item) => item.lot))];
+
+      // Create an object to hold vehicle data by lot and phase
+      const vehiclesByPhase = {};
+
+      // Process vehicle data
+      data.forEach((lotData) => {
+        const checkinDate = lotData.checkin_date
+          ? new Date(lotData.checkin_date)
+          : null;
+        const checkoutDate = lotData.checkout_date
+          ? new Date(lotData.checkout_date)
+          : null;
+
+        // Determine if the vehicle is currently in custody based on startDate
+        const isInCustody =
+          checkinDate && checkoutDate
+            ? startDate >= checkinDate && startDate <= checkoutDate
+            : checkinDate && !checkoutDate && startDate >= checkinDate;
+
+        const phase = lotData.phase || "Unassigned";
+
+        if (!vehiclesByPhase[phase]) {
+          vehiclesByPhase[phase] = [];
+        }
+
+        // If vehicle is not in custody, set relevant fields to null or dash
+        if (!isInCustody) {
+          vehiclesByPhase[phase].push({
+            phase,
+            lot: lotData.lot || "-",
+            vehicle: null,
+            owner: null,
+            checkin_date: null,
+            checkout_date: null,
+            days: "-", // Explicitly set dash for no vehicle
+            receivables: "-", // Explicitly set dash for no vehicle
+            collected: "-", // Explicitly set dash for no vehicle
+            status: false,
+            branch_name: lotData.branch_name || "-",
+          });
+        } else {
+          const days = checkinDate
+            ? checkoutDate
+              ? differenceInDays(checkoutDate, checkinDate)
+              : differenceInDays(new Date(), checkinDate)
+            : 0;
+
+          const dailyRate = parseFloat(lotData.daily_rate) || 0;
+          const collected = parseFloat(lotData.collected) || 0;
+          const receivables = Math.max(
+            days * dailyRate + days * dailyRate * 0.41 - collected,
+            0
+          );
+
+          // Display dash if days, receivables, or collected are 0 or null
+          const displayDays = days === 0 ? "-" : Math.round(days);
+          const displayReceivables =
+            receivables === 0 ? "-" : Number(receivables.toFixed(2));
+          const displayCollected =
+            collected === 0 ? "-" : Number(collected.toFixed(2));
+
+          vehiclesByPhase[phase].push({
+            phase,
+            lot: lotData.lot || "-",
+            vehicle: lotData.vehicle || "-",
+            owner: lotData.owner || "-",
+            checkin_date: lotData.checkin_date || null,
+            checkout_date: lotData.checkout_date || null,
+            days: displayDays,
+            receivables: displayReceivables,
+            collected: displayCollected,
+            status: true,
+            branch_name: lotData.branch_name || "-",
+          });
+        }
+      });
+
+      // Handle lots with no vehicles, setting default values with dash
+      allLots.forEach((lot) => {
+        const phase =
+          data.find((item) => item.lot === lot)?.phase || "Unassigned";
+
+        if (!vehiclesByPhase[phase]) {
+          vehiclesByPhase[phase] = [];
+        }
+
+        const lotHasVehicle = data.some(
+          (item) => item.lot === lot && item.checkin_date
+        );
+
+        if (!lotHasVehicle) {
+          vehiclesByPhase[phase].push({
+            phase,
+            lot,
+            vehicle: null,
+            owner: null,
+            checkin_date: null,
+            checkout_date: null,
+            days: "-", // Set dash for lots without vehicles
+            receivables: "-", // Set dash for lots without vehicles
+            collected: "-", // Set dash for lots without vehicles
+            status: false,
+            branch_name: selectedBranch || "-",
+          });
+        }
+      });
+
+      // Ensure uniqueness by lot (remove duplicates)
+      for (const phase in vehiclesByPhase) {
+        vehiclesByPhase[phase] = vehiclesByPhase[phase].filter(
+          (v, index, self) => index === self.findIndex((t) => t.lot === v.lot)
+        );
+      }
+
+      setVehiclesData(vehiclesByPhase);
+    } catch (error) {
+      console.error("Error in fetchLotAndVehicles:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchLotAndVehicles();
+    const intervalId = setInterval(fetchLotAndVehicles, 5000);
+    return () => clearInterval(intervalId);
+  }, [selectedBranch, startDate]);
+
+  const renderVehiclesByPhase = () => {
+    return Object.keys(vehiclesData).map((phase) => (
+      <div key={phase}>
+        <div className="border-y border-gray-200 text-center p-3 mb-3">
+          <p className="font-semibold">{phase.toUpperCase()}</p>
+        </div>
+        {vehiclesData[phase].map((vehicle) => (
+          <button
+            key={vehicle.vehicle_id || vehicle.lot}
+            className="w-full hover:bg-gray-50 transition-colors duration-150"
+            onClick={() => handleItemClick(vehicle)}
+            aria-label={`Details for vehicle in lot ${vehicle.lot}`}
+          >
+            <div className="grid grid-cols-9 gap-6 px-6 py-4 text-sm items-center">
+              <p className="text-left">{vehicle.lot}</p>
+              <p className="truncate">{vehicle.vehicle || "-"}</p>
+              <p className="truncate">{vehicle.owner || "-"}</p>
+              <p>
+                {vehicle.checkin_date
+                  ? new Date(vehicle.checkin_date).toLocaleDateString()
+                  : "-"}
+              </p>
+              <p>
+                {vehicle.checkout_date
+                  ? new Date(vehicle.checkout_date).toLocaleDateString()
+                  : "-"}
+              </p>
+              <p>{(vehicle.days || 0).toLocaleString()}</p>
+              <p>
+                {(vehicle.receivables || 0).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </p>
+              <p>
+                {(vehicle.collected || 0).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </p>
+              <div
+                className={`mx-2 py-2 rounded-full ${
+                  vehicle.status
+                    ? "bg-green-200 text-green-700"
+                    : "bg-yellow-100 text-amber-600"
+                } font-semibold text-sm`}
+              >
+                {vehicle.status ? "OCCUPIED" : "FREE"}
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    ));
+  };
+
   return (
     <main className="bg-stone-50 flex min-h-screen flex-col items-center relative">
       <Navbar />
       {/* drawer */}
-      {openDrawer && (
-        <div
-          className="bg-slate-800/45 w-screen h-screen fixed z-10 right-0 top-0"
-          onClick={closeDrawer}
-        >
-          <div className="ml-[1.06rem]">
-            <Navbar />
-          </div>
-
-          {/* side bar */}
-          <div
-            className="w-[540px] absolute right-0 top-14 bottom-0 bg-white shadow-lg py-8 pl-4 pr-3 overflow-y-auto text-sm"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Image
-              src={
-                "https://scngrphomkhxwdssipjb.supabase.co/storage/v1/object/public/vehicles/jeep_wrangler.jpg"
-              }
-              alt="vehicle"
-              width={494}
-              height={383}
-              className="rounded-2xl"
-            />
-
-            {/* impound status */}
-            <p className="pt-6 pb-2 px-5 text-gray-500">IMPOUND STATUS</p>
-            <div className="px-5 flex justify-between py-2">
-              <p className="font-medium">Check in</p>
-              <p className="text-slate-600">07/29/2024 12:30</p>
-            </div>
-            <div className="px-5 flex justify-between py-2">
-              <p className="font-medium">Check out</p>
-              <p className="text-slate-600">N/A</p>
-            </div>
-            <div className="px-5 flex justify-between py-2">
-              <p className="font-medium">No. of days</p>
-              <p className="text-slate-600">10</p>
-            </div>
-            <div className="px-5 flex justify-between py-2">
-              <p className="font-medium">Total Payments</p>
-              <p className="text-slate-600">0</p>
-            </div>
-            <div className="px-5 flex justify-between py-2">
-              <p className="font-medium">Daily Rate</p>
-              <p className="text-slate-600">300</p>
-            </div>
-            <div className="px-5 flex justify-between py-2">
-              <p className="font-medium">Branch</p>
-              <p className="text-slate-600">Butuan City - Main</p>
-            </div>
-            <div className="px-5 flex justify-between py-2">
-              <p className="font-medium">Teller</p>
-              <p className="text-slate-600">Janine Doe</p>
-            </div>
-            <div className="px-5 flex justify-between py-2">
-              <p className="font-medium">Parking Lot</p>
-              <p className="text-slate-600">P1 - A2</p>
-            </div>
-
-            {/* vehicle info */}
-            <p className="px-5 pt-6 pb-2 text-gray-500">VEHICLE INFO</p>
-            <div className="px-5 flex justify-between py-2 text-sm">
-              <p className="font-medium">Make</p>
-              <p className="text-slate-600">Jeep</p>
-            </div>
-            <div className="px-5 flex justify-between py-2">
-              <p className="font-medium">Model</p>
-              <p className="text-slate-600">Wrangler</p>
-            </div>
-            <div className="px-5 flex justify-between py-2">
-              <p className="font-medium">Type</p>
-              <p className="text-slate-600">Midsize SUV</p>
-            </div>
-            <div className="px-5 flex justify-between py-2">
-              <p className="font-medium">Fuel Type</p>
-              <p className="text-slate-600">Gas</p>
-            </div>
-            <div className="px-5 flex justify-between py-2">
-              <p className="font-medium">Year</p>
-              <p className="text-slate-600">2022</p>
-            </div>
-            <div className="px-5 flex justify-between py-2">
-              <p className="font-medium">Plate Number</p>
-              <p className="text-slate-600">JBU-994</p>
-            </div>
-            <div className="px-5 flex justify-between py-2">
-              <p className="font-medium">Owner</p>
-              <p className="text-slate-600">Jane Doe</p>
-            </div>
-
-            {/* vehicle status */}
-            <p className="px-5 pt-6 pb-2 text-gray-500">VEHICLE STATUS</p>
-            <div className="px-5 flex justify-between py-2">
-              <p className="font-medium">Mileage</p>
-              <p className="text-slate-600">18,000 KM</p>
-            </div>
-            <p className="px-5 pt-6 pb-2 text-gray-500">STATEMENT OF ACCOUNT</p>
-            <p className="px-5 pt-6 pb-2 text-gray-500">VIOLATIONS</p>
-
-            {/* damages */}
-            <p className="px-5 pt-6 pb-2 text-gray-500">DAMAGES</p>
-            <p className="px-5">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
-              enim ad minim veniam, quis nostrud exercitation ullamco laboris
-              nisi ut aliquip ex ea commodo consequat.
-            </p>
-
-            {/* checkout */}
-            <div className="flex items-center justify-center mb-5">
-              <button className="rounded-lg bg-yellow-400 hover:bg-yellow-600 text-black font-medium shadow-md py-2.5 w-[450px] h-[44px] mt-5">
-                <p className="">C H E C K O U T</p>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <VehicleDrawer openDrawer={openDrawer} closeDrawer={closeDrawer} />
 
       <div className="w-full max-w-[1440px] px-9 flex flex-col flex-1 pb-8 ">
         {/* top filters */}
@@ -323,515 +397,7 @@ export default function Lots() {
             <p>Collected</p>
             <p>Status</p>
           </div>
-
-          {/* phase 1 */}
-          <div className="border-y border-gray-200 text-center p-3 mb-3">
-            <p className="font-semibold">PHASE 1 (SUVs)</p>
-          </div>
-          <button
-            className="w-full hover:bg-gray-50 transition-colors duration-150"
-            onClick={() =>
-              handleItemClick({
-                lot: "A-1",
-                vehicle: "Jeep Wrangler 2022",
-                owner: "Helena Carter",
-                checkInDate: "01-09-2024",
-                checkOutDate: "01-31-2024",
-                days: 22,
-                receivable: 5000.0,
-                collected: 1600.0,
-                status: "OCCUPYING",
-                make: "Jeep",
-                model: "Wrangler",
-              })
-            }
-          >
-            <div className="grid grid-cols-9 gap-6 px-6 py-4 text-sm items-center">
-              <p className="text-left">A-1</p>
-              <p className="truncate">Jeep Wrangler 2022</p>
-              <p className="truncate">Helena Carter</p>
-              <p>01-09-2024</p>
-              <p>01-31-2024</p>
-              <p>22</p>
-              <p>5,000.00</p>
-              <p>1,600.00</p>
-              <div className="mx-2 py-2 rounded-full bg-green-200 text-green-700 font-semibold text-sm">
-                OCCUPIED
-              </div>
-            </div>
-          </button>
-
-          <button
-            className="w-full hover:bg-gray-50 transition-colors duration-150"
-            onClick={() =>
-              handleItemClick({
-                lot: "A-1",
-                vehicle: "Jeep Wrangler 2022",
-                owner: "Helena Carter",
-                checkInDate: "01-09-2024",
-                checkOutDate: "01-31-2024",
-                days: 22,
-                receivable: 5000.0,
-                collected: 1600.0,
-                status: "OCCUPYING",
-                make: "Jeep",
-                model: "Wrangler",
-              })
-            }
-          >
-            <div className="grid grid-cols-9 gap-6 px-6 py-4 text-sm items-center">
-              <p className="text-left">A-2</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <div className="mx-2 py-2 rounded-full bg-yellow-100 text-amber-600 font-semibold text-sm">
-                FREE
-              </div>
-            </div>
-          </button>
-
-          <button
-            className="w-full hover:bg-gray-50 transition-colors duration-150"
-            onClick={() =>
-              handleItemClick({
-                lot: "A-1",
-                vehicle: "Jeep Wrangler 2022",
-                owner: "Helena Carter",
-                checkInDate: "01-09-2024",
-                checkOutDate: "01-31-2024",
-                days: 22,
-                receivable: 5000.0,
-                collected: 1600.0,
-                status: "OCCUPYING",
-                make: "Jeep",
-                model: "Wrangler",
-              })
-            }
-          >
-            <div className="grid grid-cols-9 gap-6 px-6 py-4 text-sm items-center">
-              <p className="text-left">A-3</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <div className="mx-2 py-2 rounded-full bg-yellow-100 text-amber-600 font-semibold text-sm">
-                FREE
-              </div>
-            </div>
-          </button>
-
-          <button
-            className="w-full hover:bg-gray-50 transition-colors duration-150"
-            onClick={() =>
-              handleItemClick({
-                lot: "A-1",
-                vehicle: "Jeep Wrangler 2022",
-                owner: "Helena Carter",
-                checkInDate: "01-09-2024",
-                checkOutDate: "01-31-2024",
-                days: 22,
-                receivable: 5000.0,
-                collected: 1600.0,
-                status: "OCCUPYING",
-                make: "Jeep",
-                model: "Wrangler",
-              })
-            }
-          >
-            <div className="grid grid-cols-9 gap-6 px-6 py-4 text-sm items-center">
-              <p className="text-left">B-1</p>
-              <p className="truncate">Jeep Wrangler 2022</p>
-              <p className="truncate">Helena Carter</p>
-              <p>01-09-2024</p>
-              <p>01-31-2024</p>
-              <p>22</p>
-              <p>5,000.00</p>
-              <p>1,600.00</p>
-              <div className="mx-2 py-2 rounded-full bg-green-200 text-green-700 font-semibold text-sm">
-                OCCUPIED
-              </div>
-            </div>
-          </button>
-
-          <button
-            className="w-full hover:bg-gray-50 transition-colors duration-150"
-            onClick={() =>
-              handleItemClick({
-                lot: "A-1",
-                vehicle: "Jeep Wrangler 2022",
-                owner: "Helena Carter",
-                checkInDate: "01-09-2024",
-                checkOutDate: "01-31-2024",
-                days: 22,
-                receivable: 5000.0,
-                collected: 1600.0,
-                status: "OCCUPYING",
-                make: "Jeep",
-                model: "Wrangler",
-              })
-            }
-          >
-            <div className="grid grid-cols-9 gap-6 px-6 py-4 text-sm items-center">
-              <p className="text-left">B-2</p>
-              <p className="truncate">Jeep Wrangler 2022</p>
-              <p className="truncate">Helena Carter</p>
-              <p>01-09-2024</p>
-              <p>01-31-2024</p>
-              <p>22</p>
-              <p>5,000.00</p>
-              <p>1,600.00</p>
-              <div className="mx-2 py-2 rounded-full bg-green-200 text-green-700 font-semibold text-sm">
-                OCCUPIED
-              </div>
-            </div>
-          </button>
-
-          {/* phase 2 */}
-          <div className="border-y border-gray-200 text-center p-3 my-3">
-            <p className="font-semibold">PHASE 2 (Trucks)</p>
-          </div>
-
-          <button
-            className="w-full hover:bg-gray-50 transition-colors duration-150"
-            onClick={() =>
-              handleItemClick({
-                lot: "A-1",
-                vehicle: "Jeep Wrangler 2022",
-                owner: "Helena Carter",
-                checkInDate: "01-09-2024",
-                checkOutDate: "01-31-2024",
-                days: 22,
-                receivable: 5000.0,
-                collected: 1600.0,
-                status: "OCCUPYING",
-                make: "Jeep",
-                model: "Wrangler",
-              })
-            }
-          >
-            <div className="grid grid-cols-9 gap-6 px-6 py-4 text-sm items-center">
-              <p className="text-left">A-1</p>
-              <p className="truncate">Jeep Wrangler 2022</p>
-              <p className="truncate">Helena Carter</p>
-              <p>01-09-2024</p>
-              <p>01-31-2024</p>
-              <p>22</p>
-              <p>5,000.00</p>
-              <p>1,600.00</p>
-              <div className="mx-2 py-2 rounded-full bg-green-200 text-green-700 font-semibold text-sm">
-                OCCUPIED
-              </div>
-            </div>
-          </button>
-
-          <button
-            className="w-full hover:bg-gray-50 transition-colors duration-150"
-            onClick={() =>
-              handleItemClick({
-                lot: "A-1",
-                vehicle: "Jeep Wrangler 2022",
-                owner: "Helena Carter",
-                checkInDate: "01-09-2024",
-                checkOutDate: "01-31-2024",
-                days: 22,
-                receivable: 5000.0,
-                collected: 1600.0,
-                status: "OCCUPYING",
-                make: "Jeep",
-                model: "Wrangler",
-              })
-            }
-          >
-            <div className="grid grid-cols-9 gap-6 px-6 py-4 text-sm items-center">
-              <p className="text-left">A-2</p>
-              <p className="truncate">Jeep Wrangler 2022</p>
-              <p className="truncate">Helena Carter</p>
-              <p>01-09-2024</p>
-              <p>01-31-2024</p>
-              <p>22</p>
-              <p>5,000.00</p>
-              <p>1,600.00</p>
-              <div className="mx-2 py-2 rounded-full bg-green-200 text-green-700 font-semibold text-sm">
-                OCCUPIED
-              </div>
-            </div>
-          </button>
-
-          <button
-            className="w-full hover:bg-gray-50 transition-colors duration-150"
-            onClick={() =>
-              handleItemClick({
-                lot: "A-1",
-                vehicle: "Jeep Wrangler 2022",
-                owner: "Helena Carter",
-                checkInDate: "01-09-2024",
-                checkOutDate: "01-31-2024",
-                days: 22,
-                receivable: 5000.0,
-                collected: 1600.0,
-                status: "OCCUPYING",
-                make: "Jeep",
-                model: "Wrangler",
-              })
-            }
-          >
-            <div className="grid grid-cols-9 gap-6 px-6 py-4 text-sm items-center">
-              <p className="text-left">A-3</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <div className="mx-2 py-2 rounded-full bg-yellow-100 text-amber-600 font-semibold text-sm">
-                FREE
-              </div>
-            </div>
-          </button>
-
-          <button
-            className="w-full hover:bg-gray-50 transition-colors duration-150"
-            onClick={() =>
-              handleItemClick({
-                lot: "A-1",
-                vehicle: "Jeep Wrangler 2022",
-                owner: "Helena Carter",
-                checkInDate: "01-09-2024",
-                checkOutDate: "01-31-2024",
-                days: 22,
-                receivable: 5000.0,
-                collected: 1600.0,
-                status: "OCCUPYING",
-                make: "Jeep",
-                model: "Wrangler",
-              })
-            }
-          >
-            <div className="grid grid-cols-9 gap-6 px-6 py-4 text-sm items-center">
-              <p className="text-left">B-1</p>
-              <p className="truncate">Jeep Wrangler 2022</p>
-              <p className="truncate">Helena Carter</p>
-              <p>01-09-2024</p>
-              <p>01-31-2024</p>
-              <p>22</p>
-              <p>5,000.00</p>
-              <p>1,600.00</p>
-              <div className="mx-2 py-2 rounded-full bg-green-200 text-green-700 font-semibold text-sm">
-                OCCUPIED
-              </div>
-            </div>
-          </button>
-
-          <button
-            className="w-full hover:bg-gray-50 transition-colors duration-150"
-            onClick={() =>
-              handleItemClick({
-                lot: "A-1",
-                vehicle: "Jeep Wrangler 2022",
-                owner: "Helena Carter",
-                checkInDate: "01-09-2024",
-                checkOutDate: "01-31-2024",
-                days: 22,
-                receivable: 5000.0,
-                collected: 1600.0,
-                status: "OCCUPYING",
-                make: "Jeep",
-                model: "Wrangler",
-              })
-            }
-          >
-            <div className="grid grid-cols-9 gap-6 px-6 py-4 text-sm items-center">
-              <p className="text-left">B-2</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <div className="mx-2 py-2 rounded-full bg-yellow-100 text-amber-600 font-semibold text-sm">
-                FREE
-              </div>
-            </div>
-          </button>
-
-          {/* phase 3 */}
-          <div className="border-y border-gray-200 text-center p-3 my-3">
-            <p className="font-semibold">PHASE 3 (Motorcycles)</p>
-          </div>
-
-          <button
-            className="w-full hover:bg-gray-50 transition-colors duration-150"
-            onClick={() =>
-              handleItemClick({
-                lot: "A-1",
-                vehicle: "Jeep Wrangler 2022",
-                owner: "Helena Carter",
-                checkInDate: "01-09-2024",
-                checkOutDate: "01-31-2024",
-                days: 22,
-                receivable: 5000.0,
-                collected: 1600.0,
-                status: "OCCUPYING",
-                make: "Jeep",
-                model: "Wrangler",
-              })
-            }
-          >
-            <div className="grid grid-cols-9 gap-6 px-6 py-4 text-sm items-center">
-              <p className="text-left">A-1</p>
-              <p className="truncate">Jeep Wrangler 2022</p>
-              <p className="truncate">Helena Carter</p>
-              <p>01-09-2024</p>
-              <p>01-31-2024</p>
-              <p>22</p>
-              <p>5,000.00</p>
-              <p>1,600.00</p>
-              <div className="mx-2 py-2 rounded-full bg-green-200 text-green-700 font-semibold text-sm">
-                OCCUPIED
-              </div>
-            </div>
-          </button>
-
-          <button
-            className="w-full hover:bg-gray-50 transition-colors duration-150"
-            onClick={() =>
-              handleItemClick({
-                lot: "A-1",
-                vehicle: "Jeep Wrangler 2022",
-                owner: "Helena Carter",
-                checkInDate: "01-09-2024",
-                checkOutDate: "01-31-2024",
-                days: 22,
-                receivable: 5000.0,
-                collected: 1600.0,
-                status: "OCCUPYING",
-                make: "Jeep",
-                model: "Wrangler",
-              })
-            }
-          >
-            <div className="grid grid-cols-9 gap-6 px-6 py-4 text-sm items-center">
-              <p className="text-left">A-2</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <div className="mx-2 py-2 rounded-full bg-yellow-100 text-amber-600 font-semibold text-sm">
-                FREE
-              </div>
-            </div>
-          </button>
-
-          <button
-            className="w-full hover:bg-gray-50 transition-colors duration-150"
-            onClick={() =>
-              handleItemClick({
-                lot: "A-1",
-                vehicle: "Jeep Wrangler 2022",
-                owner: "Helena Carter",
-                checkInDate: "01-09-2024",
-                checkOutDate: "01-31-2024",
-                days: 22,
-                receivable: 5000.0,
-                collected: 1600.0,
-                status: "OCCUPYING",
-                make: "Jeep",
-                model: "Wrangler",
-              })
-            }
-          >
-            <div className="grid grid-cols-9 gap-6 px-6 py-4 text-sm items-center">
-              <p className="text-left">A-3</p>
-              <p className="truncate">Jeep Wrangler 2022</p>
-              <p className="truncate">Helena Carter</p>
-              <p>01-09-2024</p>
-              <p>01-31-2024</p>
-              <p>22</p>
-              <p>5,000.00</p>
-              <p>1,600.00</p>
-              <div className="mx-2 py-2 rounded-full bg-green-200 text-green-700 font-semibold text-sm">
-                OCCUPIED
-              </div>
-            </div>
-          </button>
-
-          <button
-            className="w-full hover:bg-gray-50 transition-colors duration-150"
-            onClick={() =>
-              handleItemClick({
-                lot: "A-1",
-                vehicle: "Jeep Wrangler 2022",
-                owner: "Helena Carter",
-                checkInDate: "01-09-2024",
-                checkOutDate: "01-31-2024",
-                days: 22,
-                receivable: 5000.0,
-                collected: 1600.0,
-                status: "OCCUPYING",
-                make: "Jeep",
-                model: "Wrangler",
-              })
-            }
-          >
-            <div className="grid grid-cols-9 gap-6 px-6 py-4 text-sm items-center">
-              <p className="text-left">B-1</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <div className="mx-2 py-2 rounded-full bg-yellow-100 text-amber-600 font-semibold text-sm">
-                FREE
-              </div>
-            </div>
-          </button>
-
-          <button
-            className="w-full hover:bg-gray-50 transition-colors duration-150"
-            onClick={() =>
-              handleItemClick({
-                lot: "A-1",
-                vehicle: "Jeep Wrangler 2022",
-                owner: "Helena Carter",
-                checkInDate: "01-09-2024",
-                checkOutDate: "01-31-2024",
-                days: 22,
-                receivable: 5000.0,
-                collected: 1600.0,
-                status: "OCCUPYING",
-                make: "Jeep",
-                model: "Wrangler",
-              })
-            }
-          >
-            <div className="grid grid-cols-9 gap-6 px-6 py-4 text-sm items-center">
-              <p className="text-left">B-2</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <p>-</p>
-              <div className="mx-2 py-2 rounded-full bg-yellow-100 text-amber-600 font-semibold text-sm">
-                FREE
-              </div>
-            </div>
-          </button>
+          {renderVehiclesByPhase()}
         </div>
       </div>
     </main>
