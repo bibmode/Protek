@@ -67,9 +67,17 @@ export default function Lots() {
     handleCloseLotModal();
   };
 
-  const handleItemClick = (vehicle) => {
+  // Handles clicks when a vehicle is present
+  const handleVehicleItem = (vehicle) => {
+    console.log("Vehicle Item Clicked:", vehicle.vehicle);
     setSelectedVehicle(vehicle);
     setOpenDrawer(true);
+  };
+
+  // Handles clicks when a vehicle is not present (lot is free)
+  const handleLotItem = (lot) => {
+    setCarModalOpen(true);
+    console.log("Lot Clicked (no vehicle):", lot.space_code);
   };
 
   const closeDrawer = () => {
@@ -114,6 +122,7 @@ export default function Lots() {
           vehiclesByPhase[phase].push({
             phase,
             lot: lotData.lot || "-",
+            space_code: lotData.space_code || "-", // Store space_code but don't display it
             vehicle: null,
             owner: null,
             checkin_date: null,
@@ -148,6 +157,7 @@ export default function Lots() {
           vehiclesByPhase[phase].push({
             phase,
             lot: lotData.lot || "-",
+            space_code: lotData.space_code || "-", // Store space_code but don't display it
             vehicle: lotData.vehicle || "-",
             owner: lotData.owner || "-",
             checkin_date: lotData.checkin_date || null,
@@ -178,6 +188,7 @@ export default function Lots() {
           vehiclesByPhase[phase].push({
             phase,
             lot,
+            space_code: "-", // Set dash for lots without vehicles
             vehicle: null,
             owner: null,
             checkin_date: null,
@@ -220,8 +231,12 @@ export default function Lots() {
           <button
             key={vehicle.vehicle_id || vehicle.lot}
             className="w-full hover:bg-gray-50 transition-colors duration-150"
-            onClick={() => handleItemClick(vehicle)}
-            aria-label={`Details for vehicle in lot ${vehicle.lot}`}
+            onClick={() =>
+              vehicle.vehicle
+                ? handleVehicleItem(vehicle)
+                : handleLotItem(vehicle)
+            }
+            aria-label={`Details for lot ${vehicle.lot}`}
           >
             <div className="grid grid-cols-9 gap-6 px-6 py-4 text-sm items-center">
               <p className="text-left">{vehicle.lot}</p>
