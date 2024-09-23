@@ -142,7 +142,16 @@ const Navbar = () => {
                 </Link>
               </li>
               <li className="block p-2 text-center font-semibold hover:bg-amber-50 hover:text-amber-600 rounded border-b">
-                <p className="">History</p>
+                <Link
+                  className={`py-2 ${
+                    router.pathname === "/history"
+                      ? "font-semibold text-2xl"
+                      : ""
+                  }`}
+                  href="/history"
+                >
+                  History
+                </Link>
               </li>
               <li className="block p-2 text-center font-semibold hover:bg-amber-50 hover:text-amber-600 rounded border-b">
                 <p className="">Payments</p>
@@ -177,7 +186,14 @@ const Navbar = () => {
           >
             Parking Lots
           </Link>
-          <p className="py-2">History</p>
+          <Link
+            className={`py-2 ${
+              router.pathname === "/history" ? "font-semibold text-2xl" : ""
+            }`}
+            href="/history"
+          >
+            History
+          </Link>
           <p className="py-2">Payments</p>
           <p className="py-2">Financial</p>
         </div>
