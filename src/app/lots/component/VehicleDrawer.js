@@ -10,7 +10,7 @@ const VehicleDrawer = ({ openDrawer, closeDrawer }) => {
       className="bg-slate-800/45 w-screen h-screen fixed z-10 right-0 top-0"
       onClick={closeDrawer}
     >
-      <div className="ml-[1.06rem]">
+      <div className="">
         <Navbar />
       </div>
 
