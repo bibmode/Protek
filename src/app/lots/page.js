@@ -257,16 +257,20 @@ export default function Lots() {
               </p>
               <p>{(vehicle.days || 0).toLocaleString()}</p>
               <p>
-                {(vehicle.receivables || 0).toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
+                {(vehicle.receivables || 0) > 0
+                  ? `₱${vehicle.receivables.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}`
+                  : "-"}
               </p>
               <p>
-                {(vehicle.collected || 0).toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
+                {(vehicle.collected || 0) > 0
+                  ? `₱${vehicle.collected.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}`
+                  : "-"}
               </p>
               <div
                 className={`mx-2 py-2 rounded-full ${
