@@ -13,10 +13,11 @@ const History = () => {
   );
   const [startDate, setStartDate] = useState(new Date());
   const [vehiclesData, setVehiclesData] = useState({});
-  const [error, setError] = useState(null); // Error state
+  const [searchQuery, setSearchQuery] = useState(""); // State for search query
+  const [error, setError] = useState(null);
 
   const fetchLotAndVehiclesHistory = async () => {
-    setError(null); // Reset error state
+    setError(null);
     try {
       const { data, error } = await Supabase.rpc("get_vehicles_list_for_lots");
       if (error) throw error;
@@ -32,7 +33,6 @@ const History = () => {
       );
 
       const vehiclesByPhase = {};
-
       uniqueVehicles.forEach((lotData) => {
         const checkinDate = lotData.checkin_date
           ? new Date(lotData.checkin_date)
@@ -89,54 +89,66 @@ const History = () => {
     return () => clearInterval(intervalId);
   }, [selectedBranch, startDate]);
 
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
   const renderVehiclesByPhase = () => {
-    return Object.keys(vehiclesData).map((phase) => (
-      <div key={phase}>
-        <div className="border-y border-gray-200 text-center p-3 mb-3">
-          <p className="font-semibold">{phase.toUpperCase()}</p>
+    return Object.keys(vehiclesData).map((phase) => {
+      const filteredVehicles = vehiclesData[phase].filter((vehicle) => {
+        const vehicleStr =
+          `${vehicle.vehicle} ${vehicle.owner} ${vehicle.lot}`.toLowerCase();
+        return vehicleStr.includes(searchQuery.toLowerCase());
+      });
+
+      return (
+        <div key={phase}>
+          <div className="border-y border-gray-200 text-center p-3 mb-3">
+            <p className="font-semibold">{phase.toUpperCase()}</p>
+          </div>
+          {filteredVehicles.map((vehicle) => (
+            <button
+              key={vehicle.vehicle_id || vehicle.lot}
+              className="w-full hover:bg-gray-50 transition-colors duration-150"
+              aria-label={`Details for lot ${vehicle.lot}`}
+            >
+              <div className="grid grid-cols-8 gap-6 px-6 py-4 text-sm items-center">
+                <p className="text-left">{vehicle.lot}</p>
+                <p className="truncate">{vehicle.vehicle || "-"}</p>
+                <p className="truncate">{vehicle.owner || "-"}</p>
+                <p>
+                  {vehicle.checkin_date
+                    ? new Date(vehicle.checkin_date).toLocaleDateString()
+                    : "-"}
+                </p>
+                <p>
+                  {vehicle.checkout_date
+                    ? new Date(vehicle.checkout_date).toLocaleDateString()
+                    : "-"}
+                </p>
+                <p>{(vehicle.days || 0).toLocaleString()}</p>
+                <p>
+                  {(vehicle.receivables || 0) > 0
+                    ? `₱${vehicle.receivables.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}`
+                    : "-"}
+                </p>
+                <p>
+                  {(vehicle.collected || 0) > 0
+                    ? `₱${vehicle.collected.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}`
+                    : "-"}
+                </p>
+              </div>
+            </button>
+          ))}
         </div>
-        {vehiclesData[phase].map((vehicle) => (
-          <button
-            key={vehicle.vehicle_id || vehicle.lot}
-            className="w-full hover:bg-gray-50 transition-colors duration-150"
-            aria-label={`Details for lot ${vehicle.lot}`}
-          >
-            <div className="grid grid-cols-8 gap-6 px-6 py-4 text-sm items-center">
-              <p className="text-left">{vehicle.lot}</p>
-              <p className="truncate">{vehicle.vehicle || "-"}</p>
-              <p className="truncate">{vehicle.owner || "-"}</p>
-              <p>
-                {vehicle.checkin_date
-                  ? new Date(vehicle.checkin_date).toLocaleDateString()
-                  : "-"}
-              </p>
-              <p>
-                {vehicle.checkout_date
-                  ? new Date(vehicle.checkout_date).toLocaleDateString()
-                  : "-"}
-              </p>
-              <p>{(vehicle.days || 0).toLocaleString()}</p>
-              <p>
-                {(vehicle.receivables || 0) > 0
-                  ? `₱${vehicle.receivables.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}`
-                  : "-"}
-              </p>
-              <p>
-                {(vehicle.collected || 0) > 0
-                  ? `₱${vehicle.collected.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}`
-                  : "-"}
-              </p>
-            </div>
-          </button>
-        ))}
-      </div>
-    ));
+      );
+    });
   };
 
   return (
@@ -157,6 +169,8 @@ const History = () => {
               <input
                 className="h-[46px] bg-white border-y px-4 py-2 flex justify-center items-center text-sm placeholder-gray-500 focus:outline-none"
                 placeholder="Search Vehicle/Owner/Lot"
+                value={searchQuery} // Bind value to searchQuery
+                onChange={handleSearchChange} // Update on change
               />
             </div>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 justify-center xl:justify-evenly xl:gap-0 ml-auto">
@@ -167,6 +181,8 @@ const History = () => {
                 <input
                   className="h-[46px] bg-white border-y px-4 py-2 flex justify-center items-center text-sm placeholder-gray-500 focus:outline-none"
                   placeholder="Search Vehicle/Owner/Lot"
+                  value={searchQuery} // Bind value to searchQuery
+                  onChange={handleSearchChange} // Update on change
                 />
               </div>
 
@@ -177,8 +193,7 @@ const History = () => {
             </div>
           </div>
         </div>
-        {error && <div className="text-red-600">{error}</div>}{" "}
-        {/* Error message */}
+        {error && <div className="text-red-600">{error}</div>}
         <div className="bg-white rounded-md shadow-md overflow-hidden p-3">
           <div className="grid grid-cols-8 gap-6 px-6 py-4 text-sm text-center font-semibold border-b border-gray-200">
             <p className="text-left">Lot</p>
