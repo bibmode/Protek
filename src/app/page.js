@@ -326,6 +326,11 @@ export default function Home() {
             break;
         }
 
+        // Ensure periodEnd does not go beyond today's date
+        if (isAfter(periodEnd, currentDate)) {
+          periodEnd = currentDate;
+        }
+
         const periodReceivables = data.reduce((total, item) => {
           const checkinDate = parseISO(item.checkin_date);
           const checkoutDate = item.checkout_date

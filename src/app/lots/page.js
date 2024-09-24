@@ -24,7 +24,6 @@ export default function Lots() {
   );
   const [vehiclesData, setVehiclesData] = useState([]);
   const [startDate, setStartDate] = useState(new Date());
-  const [isOpen, setIsOpen] = useState(false);
 
   const handleDateChange = (date) => {
     setStartDate(date);

@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from "react";
 import { IoMdCalendar } from "react-icons/io";
 import { FaChevronDown } from "react-icons/fa";
@@ -16,7 +18,7 @@ const LotDateComponent = ({ startDate, onDateChange }) => {
   };
 
   return (
-    <div className="flex ml-3">
+    <div className="flex ml-3 justify-center xl:justify-left">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="h-[46px] bg-white hover:bg-neutral-100 border border-gray-200 px-4 py-2 rounded-md flex items-center"
