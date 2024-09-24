@@ -54,7 +54,10 @@ const BranchButton = ({ selectedBranch, setSelectedBranch }) => {
   };
 
   return (
-    <div className="relative inline-block" ref={dropdownRef}>
+    <div
+      className="relative inline-block ml-3 justify-center xl:justify-left"
+      ref={dropdownRef}
+    >
       <button
         onClick={toggleDropdown}
         className="ml-3 h-[46px] bg-white hover:bg-neutral-100 border border-gray-200 px-4 py-2 rounded-md flex justify-center items-center"
