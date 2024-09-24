@@ -16,7 +16,7 @@ const AddNewCarModal = ({ isOpen, handleCloseCarModal, handleSubmit }) => {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50 overflow-y-auto">
-      <div className="bg-white p-4 rounded-2xl shadow-lg relative w-[920px] top-[21rem]">
+      <div className="bg-white p-4 rounded-2xl shadow-lg relative w-[920px] top-[69rem]">
         <button
           onClick={handleCloseCarModal}
           className="absolute top-2 right-2 text-2xl text-gray-500 hover:text-gray-700"
@@ -168,9 +168,12 @@ const AddNewCarModal = ({ isOpen, handleCloseCarModal, handleSubmit }) => {
               </button>
               <div className="py-12">
                 <div className="mx-auto">
-                  <p className="text-sm pl-3 font-semibold leading-tight text-gray-800 mb-4">
+                  <p className="text-center pl-3 font-semibold leading-tight text-gray-800 mb-4">
                     ADD IMAGES
                   </p>
+                  <label className="block font-medium text-neutral-800 pr-3 text-sm pl-3 mt-6">
+                    Front Pic
+                  </label>
                   <div
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
@@ -200,17 +203,302 @@ const AddNewCarModal = ({ isOpen, handleCloseCarModal, handleSubmit }) => {
                     <p className="mb-2 text-gray-700 text-xs">or</p>
 
                     <label className="bg-white px-4 h-9 inline-flex items-center rounded border border-gray-300 shadow-sm text-sm font-medium text-gray-700 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
-                      Select files
-                      <input
-                        type="file"
-                        name="file"
-                        multiple
-                        className="sr-only"
-                      />
+                      Select Image
+                      <input type="image" name="file" className="sr-only" />
                     </label>
 
                     <p className="text-xs text-gray-600 mt-4">
-                      Maximum upload file size: 50MB.
+                      Maximum upload file size: 20MB.
+                    </p>
+                  </div>
+
+                  <label className="block font-medium text-neutral-800 pr-3 text-sm pl-3 mt-6">
+                    Back Pic
+                  </label>
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    className={`flex flex-col items-center py-2 px-6 rounded-2xl border-2 border-dashed ${
+                      dragging ? "border-indigo-500" : "border-gray-400"
+                    }`}
+                  >
+                    <svg
+                      className="w-7 h-7 text-gray-500"
+                      aria-hidden="true"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 48 48"
+                    >
+                      <path
+                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                      />
+                    </svg>
+
+                    <p className="text-sm text-gray-700">
+                      Drop files to upload
+                    </p>
+
+                    <p className="mb-2 text-gray-700 text-xs">or</p>
+
+                    <label className="bg-white px-4 h-9 inline-flex items-center rounded border border-gray-300 shadow-sm text-sm font-medium text-gray-700 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                      Select Image
+                      <input type="image" name="file" className="sr-only" />
+                    </label>
+
+                    <p className="text-xs text-gray-600 mt-4">
+                      Maximum upload file size: 20MB.
+                    </p>
+                  </div>
+
+                  <label className="block font-medium text-neutral-800 pr-3 text-sm pl-3 mt-6">
+                    Left Pic
+                  </label>
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    className={`flex flex-col items-center py-2 px-6 rounded-2xl border-2 border-dashed ${
+                      dragging ? "border-indigo-500" : "border-gray-400"
+                    }`}
+                  >
+                    <svg
+                      className="w-7 h-7 text-gray-500"
+                      aria-hidden="true"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 48 48"
+                    >
+                      <path
+                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                      />
+                    </svg>
+
+                    <p className="text-sm text-gray-700">
+                      Drop files to upload
+                    </p>
+
+                    <p className="mb-2 text-gray-700 text-xs">or</p>
+
+                    <label className="bg-white px-4 h-9 inline-flex items-center rounded border border-gray-300 shadow-sm text-sm font-medium text-gray-700 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                      Select Image
+                      <input type="image" name="file" className="sr-only" />
+                    </label>
+
+                    <p className="text-xs text-gray-600 mt-4">
+                      Maximum upload file size: 20MB.
+                    </p>
+                  </div>
+
+                  <label className="block font-medium text-neutral-800 pr-3 text-sm pl-3 mt-6">
+                    Right Pic
+                  </label>
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    className={`flex flex-col items-center py-2 px-6 rounded-2xl border-2 border-dashed ${
+                      dragging ? "border-indigo-500" : "border-gray-400"
+                    }`}
+                  >
+                    <svg
+                      className="w-7 h-7 text-gray-500"
+                      aria-hidden="true"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 48 48"
+                    >
+                      <path
+                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                      />
+                    </svg>
+
+                    <p className="text-sm text-gray-700">
+                      Drop files to upload
+                    </p>
+
+                    <p className="mb-2 text-gray-700 text-xs">or</p>
+
+                    <label className="bg-white px-4 h-9 inline-flex items-center rounded border border-gray-300 shadow-sm text-sm font-medium text-gray-700 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                      Select Image
+                      <input type="image" name="file" className="sr-only" />
+                    </label>
+
+                    <p className="text-xs text-gray-600 mt-4">
+                      Maximum upload file size: 20MB.
+                    </p>
+                  </div>
+
+                  <label className="block font-medium text-neutral-800 pr-3 text-sm pl-3 mt-6">
+                    Interior Pic
+                  </label>
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    className={`flex flex-col items-center py-2 px-6 rounded-2xl border-2 border-dashed ${
+                      dragging ? "border-indigo-500" : "border-gray-400"
+                    }`}
+                  >
+                    <svg
+                      className="w-7 h-7 text-gray-500"
+                      aria-hidden="true"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 48 48"
+                    >
+                      <path
+                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                      />
+                    </svg>
+
+                    <p className="text-sm text-gray-700">
+                      Drop files to upload
+                    </p>
+
+                    <p className="mb-2 text-gray-700 text-xs">or</p>
+
+                    <label className="bg-white px-4 h-9 inline-flex items-center rounded border border-gray-300 shadow-sm text-sm font-medium text-gray-700 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                      Select Image
+                      <input type="image" name="file" className="sr-only" />
+                    </label>
+
+                    <p className="text-xs text-gray-600 mt-4">
+                      Maximum upload file size: 20MB.
+                    </p>
+                  </div>
+
+                  <p className="text-center pl-3 font-semibold leading-tight text-gray-800 mt-10">
+                    PAPERS
+                  </p>
+                  <label className="block font-medium text-neutral-800 pr-3 text-sm pl-3 mt-6">
+                    AFFIDAVIT
+                  </label>
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    className={`flex flex-col items-center py-2 px-6 rounded-2xl border-2 border-dashed ${
+                      dragging ? "border-indigo-500" : "border-gray-400"
+                    }`}
+                  >
+                    <svg
+                      className="w-7 h-7 text-gray-500"
+                      aria-hidden="true"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 48 48"
+                    >
+                      <path
+                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                      />
+                    </svg>
+
+                    <p className="text-sm text-gray-700">
+                      Drop files to upload
+                    </p>
+
+                    <p className="mb-2 text-gray-700 text-xs">or</p>
+
+                    <label className="bg-white px-4 h-9 inline-flex items-center rounded border border-gray-300 shadow-sm text-sm font-medium text-gray-700 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                      Select File
+                      <input type="file" name="file" className="sr-only" />
+                    </label>
+
+                    <p className="text-xs text-gray-600 mt-4">
+                      Maximum upload file size: 20MB.
+                    </p>
+                  </div>
+
+                  <label className="block font-medium text-neutral-800 pr-3 text-sm pl-3 mt-6">
+                    MEMORANDUM OF AGREEMENT
+                  </label>
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    className={`flex flex-col items-center py-2 px-6 rounded-2xl border-2 border-dashed ${
+                      dragging ? "border-indigo-500" : "border-gray-400"
+                    }`}
+                  >
+                    <svg
+                      className="w-7 h-7 text-gray-500"
+                      aria-hidden="true"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 48 48"
+                    >
+                      <path
+                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                      />
+                    </svg>
+
+                    <p className="text-sm text-gray-700">
+                      Drop files to upload
+                    </p>
+
+                    <p className="mb-2 text-gray-700 text-xs">or</p>
+
+                    <label className="bg-white px-4 h-9 inline-flex items-center rounded border border-gray-300 shadow-sm text-sm font-medium text-gray-700 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                      Select File
+                      <input type="file" name="file" className="sr-only" />
+                    </label>
+
+                    <p className="text-xs text-gray-600 mt-4">
+                      Maximum upload file size: 20MB.
+                    </p>
+                  </div>
+
+                  <label className="block font-medium text-neutral-800 pr-3 text-sm pl-3 mt-6">
+                    ACKNOWLEDGEMENT
+                  </label>
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    className={`flex flex-col items-center py-2 px-6 rounded-2xl border-2 border-dashed ${
+                      dragging ? "border-indigo-500" : "border-gray-400"
+                    }`}
+                  >
+                    <svg
+                      className="w-7 h-7 text-gray-500"
+                      aria-hidden="true"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 48 48"
+                    >
+                      <path
+                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                      />
+                    </svg>
+
+                    <p className="text-sm text-gray-700">
+                      Drop files to upload
+                    </p>
+
+                    <p className="mb-2 text-gray-700 text-xs">or</p>
+
+                    <label className="bg-white px-4 h-9 inline-flex items-center rounded border border-gray-300 shadow-sm text-sm font-medium text-gray-700 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                      Select File
+                      <input type="file" name="file" className="sr-only" />
+                    </label>
+
+                    <p className="text-xs text-gray-600 mt-4">
+                      Maximum upload file size: 20MB.
                     </p>
                   </div>
                 </div>
