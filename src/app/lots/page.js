@@ -69,15 +69,16 @@ export default function Lots() {
 
   // Handles clicks when a vehicle is present
   const handleVehicleItem = (vehicle) => {
-    console.log("Vehicle Item Clicked:", vehicle.vehicle);
-    setSelectedVehicle(vehicle);
+    const vehicleId = vehicle.vehicle_id;
+    console.log("Vehicle Item:", vehicleId);
+    setSelectedVehicle(vehicleId);
     setOpenDrawer(true);
   };
 
   // Handles clicks when a vehicle is not present (lot is free)
   const handleLotItem = (lot) => {
     setCarModalOpen(true);
-    console.log("Lot Clicked (no vehicle):", lot.space_code);
+    console.log("Lot:", lot.space_code);
   };
 
   const closeDrawer = () => {
@@ -123,6 +124,7 @@ export default function Lots() {
             phase,
             lot: lotData.lot || "-",
             space_code: lotData.space_code || "-", // Store space_code but don't display it
+            vehicle_id: null, // Set vehicle_id to null for free lots
             vehicle: null,
             owner: null,
             checkin_date: null,
@@ -143,12 +145,12 @@ export default function Lots() {
           const dailyRate = parseFloat(lotData.daily_rate) || 0;
           const collected = parseFloat(lotData.collected) || 0;
           const receivables = Math.max(
-            days * dailyRate + days * dailyRate * 0.41 - collected,
+            (days + 1) * dailyRate + (days + 1) * dailyRate * 0.41 - collected,
             0
           );
 
           // Display dash if days, receivables, or collected are 0 or null
-          const displayDays = days === 0 ? "-" : Math.round(days);
+          const displayDays = days + 1 === 0 ? "-" : Math.round(days);
           const displayReceivables =
             receivables === 0 ? "-" : Number(receivables.toFixed(2));
           const displayCollected =
@@ -158,11 +160,12 @@ export default function Lots() {
             phase,
             lot: lotData.lot || "-",
             space_code: lotData.space_code || "-", // Store space_code but don't display it
+            vehicle_id: lotData.vehicle_id, // Store vehicle_id for occupied vehicles
             vehicle: lotData.vehicle || "-",
             owner: lotData.owner || "-",
             checkin_date: lotData.checkin_date || null,
             checkout_date: lotData.checkout_date || null,
-            days: displayDays,
+            days: displayDays + 1,
             receivables: displayReceivables,
             collected: displayCollected,
             status: true,
@@ -189,6 +192,7 @@ export default function Lots() {
             phase,
             lot,
             space_code: "-", // Set dash for lots without vehicles
+            vehicle_id: null, // Set vehicle_id to null for free lots
             vehicle: null,
             owner: null,
             checkin_date: null,
@@ -306,7 +310,6 @@ export default function Lots() {
                 </div>
                 <p className="text-sm ml-2">Add New Car</p>
               </button>
-
               <button
                 onClick={handleOpenLotModal}
                 className="ml-3 w-[160px] h-[46px] bg-white hover:bg-neutral-100 border border-gray-200 px-4 py-2 rounded-md flex justify-center items-center"
