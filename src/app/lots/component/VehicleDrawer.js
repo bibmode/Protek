@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Navbar from "/src/app/components/Navbar";
 
 const VehicleDrawer = ({ openDrawer, closeDrawer }) => {
+  const pathname = usePathname();
   const [isCheckOutOpen, setIsCheckOutOpen] = useState(false);
 
   function openCheckOutModal() {
@@ -74,15 +76,16 @@ const VehicleDrawer = ({ openDrawer, closeDrawer }) => {
           aliquip ex ea commodo consequat.
         </p>
 
-        {/* Checkout */}
-        <div className="flex items-center justify-center mb-5">
-          <button
-            onClick={openCheckOutModal}
-            className="rounded-lg bg-yellow-400 hover:bg-yellow-500 text-black font-medium shadow-md py-2.5 w-[450px] h-[44px] mt-5"
-          >
-            <p className="">C H E C K O U T</p>
-          </button>
-        </div>
+        {pathname !== "/history" && (
+          <div className="flex items-center justify-center mb-5">
+            <button
+              onClick={openCheckOutModal}
+              className="rounded-lg bg-yellow-400 hover:bg-yellow-500 text-black font-medium shadow-md py-2.5 w-[450px] h-[44px] mt-5"
+            >
+              <p>C H E C K O U T</p>
+            </button>
+          </div>
+        )}
       </div>
       {isCheckOutOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
