@@ -89,7 +89,7 @@ const VehicleDrawer = ({ openDrawer, closeDrawer }) => {
           <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
             <div className="flex justify-end"></div>
             <div className="text-center">
-              <p className="mb-4 font-medium">
+              <p className="mb-8 font-medium">
                 Scan the QR Code to complete the transaction via the mobile app
               </p>
               <div className="flex justify-center">
