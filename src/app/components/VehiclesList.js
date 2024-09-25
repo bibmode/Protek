@@ -1,3 +1,4 @@
+import Link from "next/link";
 import React from "react";
 import { IoIosArrowForward } from "react-icons/io";
 
@@ -11,10 +12,13 @@ const VehiclesList = ({ vehiclesList }) => {
             See the vehicles for every branch
           </p>
         </div>
-        <button className="flex items-center text-blue-500 hover:text-blue-300 pr-1">
+        <Link
+          href="/history"
+          className="flex items-center text-blue-500 hover:text-blue-300 pr-1"
+        >
           <p className="text-xs font-semibold">More details</p>
           <IoIosArrowForward className="text-2xl ml-2" />
-        </button>
+        </Link>
       </div>
 
       {/* labels */}

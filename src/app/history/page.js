@@ -13,7 +13,7 @@ const History = () => {
   );
   const [startDate, setStartDate] = useState(new Date());
   const [vehiclesData, setVehiclesData] = useState({});
-  const [searchQuery, setSearchQuery] = useState(""); // State for search query
+  const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState(null);
 
   const fetchLotAndVehiclesHistory = async () => {
