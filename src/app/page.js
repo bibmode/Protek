@@ -381,8 +381,6 @@ export default function Home() {
         finalResult.unshift(0);
       }
 
-      console.log("Processed totalReceivables:", finalResult);
-
       setTotalReceivables(finalResult);
     } catch (error) {
       console.error("Error in fetchTotalReceivables:", error.message || error);

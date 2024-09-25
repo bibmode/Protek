@@ -61,8 +61,6 @@ export default function Lots() {
 
     const spaceCode = `bxu-${phaseCode}${selectedLot.toLowerCase()}`;
 
-    console.log("Generated Space Code:", spaceCode);
-
     handleCloseLotModal();
   };
 
@@ -303,8 +301,8 @@ export default function Lots() {
           </div>
 
           <div className="flex">
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 xl:gap-0">
-              <button
+            <div className="grid grid-cols-1 xl:grid-cols-1 gap-3 xl:gap-0">
+              {/* <button
                 onClick={handleOpenCarModal}
                 className="ml-3 w-[160px] h-[46px] bg-white hover:bg-neutral-100 border border-gray-200 px-4 py-2 rounded-md flex justify-center items-center"
               >
@@ -312,7 +310,7 @@ export default function Lots() {
                   <IoCarSport />
                 </div>
                 <p className="text-sm ml-2">Add New Car</p>
-              </button>
+              </button> */}
               <button
                 onClick={handleOpenLotModal}
                 className="ml-3 w-[160px] h-[46px] bg-white hover:bg-neutral-100 border border-gray-200 px-4 py-2 rounded-md flex justify-center items-center"
