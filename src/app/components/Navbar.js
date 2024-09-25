@@ -153,12 +153,6 @@ const Navbar = () => {
                   History
                 </Link>
               </li>
-              <li className="block p-2 text-center font-semibold hover:bg-amber-50 hover:text-amber-600 rounded border-b">
-                <p className="">Payments</p>
-              </li>
-              <li className="block p-2 text-center font-semibold hover:bg-amber-50 hover:text-amber-600 rounded border-b">
-                <p className="">Financial</p>
-              </li>
             </ul>
           </div>
         </div>
@@ -169,7 +163,7 @@ const Navbar = () => {
           </div>
           PROTEK
         </Link>
-        <div className="hidden xl:flex justify-between w-[600px] mr-auto">
+        <div className="hidden xl:flex justify-between w-[380px] mr-auto">
           <Link
             className={`py-2 ${
               router.pathname === "/" ? "font-semibold text-2xl" : ""
@@ -194,8 +188,6 @@ const Navbar = () => {
           >
             History
           </Link>
-          <p className="py-2">Payments</p>
-          <p className="py-2">Financial</p>
         </div>
         <div className="flex items-center">
           <Image
