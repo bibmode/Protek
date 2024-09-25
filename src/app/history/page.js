@@ -6,6 +6,7 @@ import BranchButton from "../components/BranchButton";
 import { IoMdSearch } from "react-icons/io";
 import { differenceInDays } from "date-fns";
 import { Supabase } from "/utils/supabase/client";
+import VehicleDrawer from "../lots/component/VehicleDrawer";
 
 const History = () => {
   const [selectedBranch, setSelectedBranch] = useState(
@@ -15,6 +16,20 @@ const History = () => {
   const [vehiclesData, setVehiclesData] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState(null);
+  const [openDrawer, setOpenDrawer] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+
+  const handleVehicleItem = (vehicle) => {
+    const vehicleId = vehicle.vehicle_id;
+    console.log("Vehicle Item:", vehicleId);
+    setSelectedVehicle(vehicleId);
+    setOpenDrawer(true);
+  };
+
+  const closeDrawer = () => {
+    setOpenDrawer(false);
+    setSelectedVehicle(null);
+  };
 
   const fetchLotAndVehiclesHistory = async () => {
     setError(null);
@@ -109,6 +124,7 @@ const History = () => {
           {filteredVehicles.map((vehicle) => (
             <button
               key={vehicle.vehicle_id || vehicle.lot}
+              onClick={() => handleVehicleItem(vehicle)}
               className="w-full hover:bg-gray-50 transition-colors duration-150"
               aria-label={`Details for lot ${vehicle.lot}`}
             >
@@ -154,6 +170,7 @@ const History = () => {
   return (
     <main className="bg-stone-50 flex min-h-screen flex-col items-center relative">
       <Navbar />
+      <VehicleDrawer openDrawer={openDrawer} closeDrawer={closeDrawer} />
       <div className="w-full max-w-[1440px] px-9 flex flex-col flex-1 pb-8 ">
         <div className="flex w-full items-center">
           <div className="mr-auto pt-11 pb-9">
