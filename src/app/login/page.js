@@ -143,7 +143,6 @@ export default function Login() {
       document.cookie = `tellerId=${tellerData.id}; path=/; ${expires}; Secure`;
 
       setIsAuthenticated(true);
-      toast.success("Login successful!");
       router.push("/"); // Redirect to homepage after login
     } catch (error) {
       console.error("Login error:", error);
