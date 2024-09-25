@@ -202,7 +202,7 @@ const History = () => {
             <p>Check-in Date</p>
             <p>Check-out Date</p>
             <p>Days of Stay</p>
-            <p>Balance</p>
+            <p>Remaining Balance</p>
             <p>Paid</p>
           </div>
           {renderVehiclesByPhase()}
