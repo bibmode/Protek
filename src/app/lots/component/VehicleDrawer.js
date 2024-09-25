@@ -1,8 +1,18 @@
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
-import Navbar from "/src/app/components/Navbar"; // Adjust the import path based on your project structure
+import Navbar from "/src/app/components/Navbar";
 
 const VehicleDrawer = ({ openDrawer, closeDrawer }) => {
+  const [isCheckOutOpen, setIsCheckOutOpen] = useState(false);
+
+  function openCheckOutModal() {
+    setIsCheckOutOpen(true);
+  }
+
+  function closeCheckOutModal() {
+    setIsCheckOutOpen(false);
+  }
+
   if (!openDrawer) return null;
 
   return (
@@ -66,11 +76,49 @@ const VehicleDrawer = ({ openDrawer, closeDrawer }) => {
 
         {/* Checkout */}
         <div className="flex items-center justify-center mb-5">
-          <button className="rounded-lg bg-yellow-400 hover:bg-yellow-600 text-black font-medium shadow-md py-2.5 w-[450px] h-[44px] mt-5">
+          <button
+            onClick={openCheckOutModal}
+            className="rounded-lg bg-yellow-400 hover:bg-yellow-500 text-black font-medium shadow-md py-2.5 w-[450px] h-[44px] mt-5"
+          >
             <p className="">C H E C K O U T</p>
           </button>
         </div>
       </div>
+      {isCheckOutOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+            <div className="flex justify-end"></div>
+            <div className="text-center">
+              <p className="mb-4 font-medium">
+                Scan the QR Code to complete the transaction via the mobile app
+              </p>
+              <div className="flex justify-center">
+                <Image
+                  src="https://scngrphomkhxwdssipjb.supabase.co/storage/v1/object/public/receipts/QR%20Code.png"
+                  alt="QR Code"
+                  width={200}
+                  height={200}
+                />
+              </div>
+              <div className="mt-10 mb-6 border-b border-gray-400"></div>
+              <div className="flex justify-between">
+                <p className="text-xs font-semibold">
+                  TOTAL REMAINING PAYMENT:
+                </p>
+                <p className="text-sm font-bold">₱ 75,450.00</p>
+              </div>
+            </div>
+            <div className="mt-6">
+              <button
+                onClick={closeCheckOutModal}
+                className="w-full py-2 text-sm font-medium bg-yellow-400 hover:bg-yellow-500 text-black rounded-lg"
+              >
+                DONE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
