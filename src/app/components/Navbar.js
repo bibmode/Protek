@@ -61,7 +61,6 @@ const Navbar = () => {
         "tellerId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 
       setIsAuthenticated(false);
-      toast.success("Logged out successfully");
       router.push("/login");
     } catch (error) {
       console.error("Error logging out:", error);
