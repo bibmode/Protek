@@ -27,14 +27,15 @@ const VehicleDrawer = ({ openDrawer, closeDrawer, vehicleData }) => {
         ? new Date(vehicleData.date_of_checkout)
         : new Date(); // Use today if no checkout date
 
-      // Ensure checkoutDate is after checkinDate
+      // Ensure checkoutDate is after or equal to checkinDate
       if (checkoutDate >= checkinDate) {
-        const diffTime = Math.abs(checkoutDate - checkinDate);
+        const diffTime =
+          checkoutDate.setHours(0, 0, 0, 0) - checkinDate.setHours(0, 0, 0, 0);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return diffDays + 1;
       }
     }
-    return "-"; // Return "N/A" if no valid checkin date
+    return "-"; // Return "-" if no valid checkin date
   };
 
   // Function to add prefix to URLs
