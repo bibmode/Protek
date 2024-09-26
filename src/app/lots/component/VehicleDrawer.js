@@ -128,8 +128,20 @@ const VehicleDrawer = ({ openDrawer, closeDrawer, vehicleData }) => {
           value={formatDate(vehicleData.date_of_checkout) || "-"}
         />
         <InfoRow label="No. of days" value={calculateDays()} />
-        <InfoRow label="Total Payments" value={vehicleData.paid || "0"} />
-        <InfoRow label="Daily Rate" value={vehicleData.daily_rate || "N/A"} />
+        <InfoRow
+          label="Total Payments"
+          value={`₱ ${(vehicleData.paid || 0).toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`}
+        />
+        <InfoRow
+          label="Daily Rate"
+          value={`₱ ${(vehicleData.daily_rate || "N/A").toLocaleString(
+            undefined,
+            { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+          )}`}
+        />
         <InfoRow label="Branch" value={vehicleData.branch_name || "N/A"} />
         <InfoRow label="Parking Lot" value={vehicleData.lot || "N/A"} />
         <InfoRow label="Teller" value={vehicleData.teller_name || "N/A"} />
