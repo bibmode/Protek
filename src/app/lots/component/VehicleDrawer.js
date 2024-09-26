@@ -62,7 +62,7 @@ const VehicleDrawer = ({ openDrawer, closeDrawer, vehicleData }) => {
 
   // Function to format date
   const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
+    if (!dateString) return "-";
     const date = new Date(dateString);
     const options = {
       year: "numeric",
