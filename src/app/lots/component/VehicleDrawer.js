@@ -20,16 +20,21 @@ const VehicleDrawer = ({ openDrawer, closeDrawer, vehicleData }) => {
 
   if (!openDrawer) return null;
 
-  // Calculate the number of days
   const calculateDays = () => {
     if (vehicleData.date_of_checkin) {
       const checkinDate = new Date(vehicleData.date_of_checkin);
-      const currentDate = new Date();
-      const diffTime = Math.abs(currentDate - checkinDate);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays;
+      const checkoutDate = vehicleData.date_of_checkout
+        ? new Date(vehicleData.date_of_checkout)
+        : new Date(); // Use today if no checkout date
+
+      // Ensure checkoutDate is after checkinDate
+      if (checkoutDate >= checkinDate) {
+        const diffTime = Math.abs(checkoutDate - checkinDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays + 1;
+      }
     }
-    return "N/A";
+    return "-"; // Return "N/A" if no valid checkin date
   };
 
   // Function to add prefix to URLs
