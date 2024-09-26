@@ -69,7 +69,6 @@ export default function Lots() {
   // Handles clicks when a vehicle is present
   const handleVehicleItem = (vehicle) => {
     const vehicleId = vehicle.vehicle_id;
-    console.log("Vehicle Item:", vehicleId);
     setSelectedVehicle(vehicleId);
     const filteredData = vehicleDrawerData.find(
       (item) => item.id === vehicleId
