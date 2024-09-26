@@ -46,6 +46,7 @@ import {
 import LatestPayments from "./components/LatestPayments";
 import VehiclesList from "./components/VehiclesList";
 import TellersLog from "./components/TellersLog";
+import AllPaymentsDrawer from "./components/AllPaymentsDrawer";
 
 export default function Home() {
   const [startDate, setStartDate] = useState(new Date());
@@ -64,7 +65,13 @@ export default function Home() {
   const [latestPayments, setLatestPayments] = useState([]);
   const [vehiclesList, setVehiclesList] = useState([]);
   const [tellersLog, setTellersLog] = useState([]);
+  const [paymentsDrawer, setPaymentsDrawer] = useState([]);
+  const [isPaymentsDrawerOpen, setIsPaymentsDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const togglePaymentsDrawer = () => {
+    setIsPaymentsDrawerOpen(!isPaymentsDrawerOpen);
+  };
 
   const handleDateChange = (date) => {
     setStartDate(date);
@@ -992,8 +999,21 @@ export default function Home() {
     }
   };
 
+  const fetchAllPaymentsDrawer = async () => {
+    try {
+      const { data, error } = await Supabase.rpc(
+        "get_all_payments_data_for_drawer"
+      ); // Call the Supabase function
+      if (error) throw error;
+      setPaymentsDrawer(data);
+    } catch (error) {
+      console.error("Error fetching payments drawer data:", error);
+    }
+  };
+
   useEffect(() => {
     const fetchData = () => {
+      fetchAllPaymentsDrawer();
       fetchVehiclesList();
       fetchTellersLog();
       fetchLatestPayments();
@@ -1029,6 +1049,11 @@ export default function Home() {
   return (
     <main className="bg-stone-50 w-full max-w-screen min-w-screen items-center">
       <Navbar />
+      <AllPaymentsDrawer
+        paymentsDrawer={paymentsDrawer}
+        isOpen={isPaymentsDrawerOpen}
+        onClose={() => setIsPaymentsDrawerOpen(false)}
+      />
       <div className="max-w-[1440px] w-full px-9 grid pb-10  mx-auto">
         <div className="flex w-full items-center">
           <div className="mr-auto pt-11 pb-9">
@@ -1070,7 +1095,10 @@ export default function Home() {
 
         <div className="grid grid-cols-2 gap-5 mt-5">
           {/* latest payments */}
-          <LatestPayments latestPayments={latestPayments} />
+          <LatestPayments
+            latestPayments={latestPayments}
+            onMoreDetails={togglePaymentsDrawer}
+          />
 
           <div className="grid gap-5">
             {/* vehicles in custody */}

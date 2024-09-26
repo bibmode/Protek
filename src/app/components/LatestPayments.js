@@ -1,7 +1,11 @@
 import React from "react";
 import { IoIosArrowForward } from "react-icons/io";
 
-const LatestPayments = ({ latestPayments = [], error = null }) => {
+const LatestPayments = ({
+  latestPayments = [],
+  error = null,
+  onMoreDetails,
+}) => {
   if (error) {
     return (
       <div className="text-center py-4 text-red-500">
@@ -19,7 +23,10 @@ const LatestPayments = ({ latestPayments = [], error = null }) => {
             See latest payment transactions
           </p>
         </div>
-        <button className="flex items-center text-blue-500 hover:text-blue-300 pr-1">
+        <button
+          className="flex items-center text-blue-500 hover:text-blue-300 pr-1"
+          onClick={onMoreDetails}
+        >
           <p className="text-xs font-semibold">More details</p>
           <IoIosArrowForward className="text-xl ml-2" />
         </button>

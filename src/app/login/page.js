@@ -47,7 +47,6 @@ export default function Login() {
       }
 
       if (existingLog) {
-        console.log("Log entry already exists for this teller and date.");
         return { success: true, message: "Log entry already exists." };
       }
 
