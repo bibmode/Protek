@@ -131,8 +131,8 @@ const VehicleDrawer = ({ openDrawer, closeDrawer, vehicleData }) => {
         {/* Vehicle info */}
         <p className="pl-5 pt-6 pb-2 text-gray-500">VEHICLE INFO</p>
         <InfoRow label="Make" value={vehicleData.make || "N/A"} />
-        <InfoRow label="Type" value={vehicleData.type || "N/A"} />
         <InfoRow label="Series" value={vehicleData.series || "N/A"} />
+        <InfoRow label="Type" value={vehicleData.type || "N/A"} />
         <InfoRow label="Year Model" value={vehicleData.year_model || "N/A"} />
         <InfoRow label="Plate Number" value={vehicleData.plate_no || "N/A"} />
         <InfoRow label="Engine No" value={vehicleData.engine_no || "N/A"} />
