@@ -18,7 +18,7 @@ const AllPaymentsDrawer = ({ paymentsDrawer, isOpen, onClose }) => {
       >
         <div className="px-6 pt-6 flex justify-between items-center">
           <h2 className="text-[0.900rem] font-medium">All Payments</h2>
-          <button onClick={onClose} className="text-gray-600">
+          <button onClick={onClose} className="text-gray-600 font-extrabold">
             ✕
           </button>
         </div>
@@ -27,7 +27,7 @@ const AllPaymentsDrawer = ({ paymentsDrawer, isOpen, onClose }) => {
         </p>
 
         <div className="overflow-x-auto p-4">
-          <table className="min-w-full text-left table-auto">
+          <table className="min-w-full text-left table-auto overflow-y-auto">
             <thead>
               <tr className="text-[0.8rem] text-gray-500 border-t text-center">
                 <th className="py-3 px-4 text-left font-normal">Owner</th>
