@@ -18,17 +18,34 @@ const History = () => {
   const [error, setError] = useState(null);
   const [openDrawer, setOpenDrawer] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [vehicleDrawerData, setVehicleDrawerData] = useState([]);
+  const [filteredVehicleData, setFilteredVehicleData] = useState(null);
 
   const handleVehicleItem = (vehicle) => {
     const vehicleId = vehicle.vehicle_id;
     console.log("Vehicle Item:", vehicleId);
     setSelectedVehicle(vehicleId);
+    const filteredData = vehicleDrawerData.find(
+      (item) => item.id === vehicleId
+    );
+    setFilteredVehicleData(filteredData || null);
+
     setOpenDrawer(true);
   };
 
   const closeDrawer = () => {
     setOpenDrawer(false);
     setSelectedVehicle(null);
+  };
+
+  const fetchVehicleDrawerData = async () => {
+    try {
+      const { data, error } = await Supabase.rpc("get_vehicle_drawer_data");
+      if (error) throw error;
+      setVehicleDrawerData(data);
+    } catch (error) {
+      console.error("Error fetching vehicle drawer data:", error);
+    }
   };
 
   const fetchLotAndVehiclesHistory = async () => {
@@ -100,7 +117,12 @@ const History = () => {
 
   useEffect(() => {
     fetchLotAndVehiclesHistory();
-    const intervalId = setInterval(fetchLotAndVehiclesHistory, 5000);
+    fetchVehicleDrawerData();
+    const intervalId = setInterval(
+      fetchLotAndVehiclesHistory,
+      fetchVehicleDrawerData,
+      5000
+    );
     return () => clearInterval(intervalId);
   }, [selectedBranch, startDate]);
 
@@ -170,7 +192,11 @@ const History = () => {
   return (
     <main className="bg-stone-50 flex min-h-screen flex-col items-center relative">
       <Navbar />
-      <VehicleDrawer openDrawer={openDrawer} closeDrawer={closeDrawer} />
+      <VehicleDrawer
+        openDrawer={openDrawer}
+        closeDrawer={closeDrawer}
+        vehicleData={filteredVehicleData}
+      />
       <div className="w-full max-w-[1440px] px-9 flex flex-col flex-1 pb-8 ">
         <div className="flex w-full items-center">
           <div className="mr-auto pt-11 pb-9">

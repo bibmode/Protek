@@ -2,8 +2,11 @@ import React, { useState } from "react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Navbar from "/src/app/components/Navbar";
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
 
-const VehicleDrawer = ({ openDrawer, closeDrawer }) => {
+const VehicleDrawer = ({ openDrawer, closeDrawer, vehicleData }) => {
   const pathname = usePathname();
   const [isCheckOutOpen, setIsCheckOutOpen] = useState(false);
 
@@ -17,6 +20,61 @@ const VehicleDrawer = ({ openDrawer, closeDrawer }) => {
 
   if (!openDrawer) return null;
 
+  // Calculate the number of days
+  const calculateDays = () => {
+    if (vehicleData.date_of_checkin) {
+      const checkinDate = new Date(vehicleData.date_of_checkin);
+      const currentDate = new Date();
+      const diffTime = Math.abs(currentDate - checkinDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays;
+    }
+    return "N/A";
+  };
+
+  // Function to add prefix to URLs
+  const addPrefix = (url) => {
+    if (url && (url.startsWith("vehicles/") || url.startsWith("papers/"))) {
+      return `https://scngrphomkhxwdssipjb.supabase.co/storage/v1/object/public/${url}`;
+    }
+    return url;
+  };
+
+  // Settings for the carousel
+  const settings = {
+    dots: true,
+    infinite: true,
+    speed: 500,
+    slidesToShow: 1,
+    slidesToScroll: 1,
+    autoplay: true,
+    autoplaySpeed: 3000,
+  };
+
+  // Array of image URLs
+  const imageUrls = [
+    addPrefix(vehicleData.pic_front),
+    addPrefix(vehicleData.pic_back),
+    addPrefix(vehicleData.pic_left),
+    addPrefix(vehicleData.pic_right),
+    addPrefix(vehicleData.pic_interior),
+  ].filter(Boolean); // This removes any undefined or null values
+
+  // Function to format date
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    const options = {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      hour12: true,
+    };
+    return date.toLocaleString("en-US", options);
+  };
+
   return (
     <div
       className="bg-slate-800/45 w-screen h-screen fixed z-10 right-0 top-0"
@@ -28,52 +86,71 @@ const VehicleDrawer = ({ openDrawer, closeDrawer }) => {
 
       {/* Side bar */}
       <div
-        className="w-[540px] absolute right-0 top-14 bottom-0 bg-white shadow-lg py-8 pl-4 pr-3 overflow-y-auto text-sm"
+        className="w-[570px] absolute right-0 top-14 bottom-0 bg-white shadow-lg py-8 pl-4 pr-3 overflow-y-auto text-sm"
         onClick={(e) => e.stopPropagation()}
       >
-        <Image
-          src="https://scngrphomkhxwdssipjb.supabase.co/storage/v1/object/public/vehicles/jeep_wrangler.jpg"
-          alt="vehicle"
-          width={494}
-          height={383}
-          className="rounded-2xl"
-        />
+        {/* Image Carousel */}
+        <div className="mb-6 w-[494px] h-[383px] mx-auto">
+          <Slider {...settings} className="w-[494px] h-[383px]">
+            {imageUrls.map((url, index) => (
+              <div key={index} className="w-[494px] h-[383px]">
+                <div className="relative w-[494px] h-[383px]">
+                  <Image
+                    src={url}
+                    alt={`Vehicle image ${index + 1}`}
+                    fill
+                    sizes="494px"
+                    style={{
+                      objectFit: "cover",
+                    }}
+                    className="rounded-2xl"
+                  />
+                </div>
+              </div>
+            ))}
+          </Slider>
+        </div>
 
         {/* Impound status */}
-        <p className="pt-6 pb-2 px-5 text-gray-500">IMPOUND STATUS</p>
-        <InfoRow label="Check in" value="07/29/2024 12:30" />
-        <InfoRow label="Check out" value="N/A" />
-        <InfoRow label="No. of days" value="10" />
-        <InfoRow label="Total Payments" value="0" />
-        <InfoRow label="Daily Rate" value="300" />
-        <InfoRow label="Branch" value="Butuan City - Main" />
-        <InfoRow label="Teller" value="Janine Doe" />
-        <InfoRow label="Parking Lot" value="P1 - A2" />
+        <p className="pt-6 pb-2 pl-5 text-gray-500">IMPOUND STATUS</p>
+        <InfoRow
+          label="Check in"
+          value={formatDate(vehicleData.date_of_checkin) || "-"}
+        />
+        <InfoRow
+          label="Check out"
+          value={formatDate(vehicleData.date_of_checkout) || "-"}
+        />
+        <InfoRow label="No. of days" value={calculateDays()} />
+        <InfoRow label="Total Payments" value={vehicleData.paid || "0"} />
+        <InfoRow label="Daily Rate" value={vehicleData.daily_rate || "N/A"} />
+        <InfoRow label="Branch" value={vehicleData.branch_name || "N/A"} />
+        <InfoRow label="Teller" value={vehicleData.teller_name || "N/A"} />
+        <InfoRow label="Parking Lot" value={vehicleData.lot || "N/A"} />
 
         {/* Vehicle info */}
-        <p className="px-5 pt-6 pb-2 text-gray-500">VEHICLE INFO</p>
-        <InfoRow label="Make" value="Jeep" />
-        <InfoRow label="Model" value="Wrangler" />
-        <InfoRow label="Type" value="Midsize SUV" />
-        <InfoRow label="Fuel Type" value="Gas" />
-        <InfoRow label="Year" value="2022" />
-        <InfoRow label="Plate Number" value="JBU-994" />
-        <InfoRow label="Owner" value="Jane Doe" />
+        <p className="pl-5 pt-6 pb-2 text-gray-500">VEHICLE INFO</p>
+        <InfoRow label="Make" value={vehicleData.make || "N/A"} />
+        <InfoRow label="Type" value={vehicleData.type || "N/A"} />
+        <InfoRow label="Series" value={vehicleData.series || "N/A"} />
+        <InfoRow label="Year Model" value={vehicleData.year_model || "N/A"} />
+        <InfoRow label="Plate Number" value={vehicleData.plate_no || "N/A"} />
+        <InfoRow label="Engine No" value={vehicleData.engine_no || "N/A"} />
+        <InfoRow label="Serial No" value={vehicleData.serial_no || "N/A"} />
+        <InfoRow label="MV File No" value={vehicleData.mv_file_no || "N/A"} />
+        <InfoRow label="CR No" value={vehicleData.cr_no || "N/A"} />
 
         {/* Vehicle status */}
-        <p className="px-5 pt-6 pb-2 text-gray-500">VEHICLE STATUS</p>
-        <InfoRow label="Mileage" value="18,000 KM" />
-
-        <p className="px-5 pt-6 pb-2 text-gray-500">STATEMENT OF ACCOUNT</p>
-        <p className="px-5 pt-6 pb-2 text-gray-500">VIOLATIONS</p>
+        <p className="pl-5 pt-6 pb-2 text-gray-500">VEHICLE STATUS</p>
+        <InfoRow label="Gas" value={vehicleData.gas || "N/A"} />
+        <InfoRow label="Mileage" value={vehicleData.mileage || "N/A"} />
 
         {/* Damages */}
-        <p className="px-5 pt-6 pb-2 text-gray-500">DAMAGES</p>
-        <p className="px-5">
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-          eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad
-          minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-          aliquip ex ea commodo consequat.
+        <p className="pl-5 pt-6 pb-2 text-gray-500">DAMAGES</p>
+        <p className="pl-5">
+          {vehicleData.damages && vehicleData.damages.length > 0
+            ? vehicleData.damages.join(", ")
+            : "No damages reported"}
         </p>
 
         {pathname !== "/history" && (

@@ -24,6 +24,8 @@ export default function Lots() {
   );
   const [vehiclesData, setVehiclesData] = useState([]);
   const [startDate, setStartDate] = useState(new Date());
+  const [vehicleDrawerData, setVehicleDrawerData] = useState([]);
+  const [filteredVehicleData, setFilteredVehicleData] = useState(null);
 
   const handleDateChange = (date) => {
     setStartDate(date);
@@ -69,6 +71,11 @@ export default function Lots() {
     const vehicleId = vehicle.vehicle_id;
     console.log("Vehicle Item:", vehicleId);
     setSelectedVehicle(vehicleId);
+    const filteredData = vehicleDrawerData.find(
+      (item) => item.id === vehicleId
+    );
+    setFilteredVehicleData(filteredData || null);
+
     setOpenDrawer(true);
   };
 
@@ -81,6 +88,16 @@ export default function Lots() {
   const closeDrawer = () => {
     setOpenDrawer(false);
     setSelectedVehicle(null);
+  };
+
+  const fetchVehicleDrawerData = async () => {
+    try {
+      const { data, error } = await Supabase.rpc("get_vehicle_drawer_data");
+      if (error) throw error;
+      setVehicleDrawerData(data);
+    } catch (error) {
+      console.error("Error fetching vehicle drawer data:", error);
+    }
   };
 
   const fetchLotAndVehicles = async () => {
@@ -218,7 +235,12 @@ export default function Lots() {
 
   useEffect(() => {
     fetchLotAndVehicles();
-    const intervalId = setInterval(fetchLotAndVehicles, 5000);
+    fetchVehicleDrawerData();
+    const intervalId = setInterval(
+      fetchLotAndVehicles,
+      fetchVehicleDrawerData,
+      5000
+    );
     return () => clearInterval(intervalId);
   }, [selectedBranch, startDate]);
 
@@ -290,7 +312,11 @@ export default function Lots() {
     <main className="bg-stone-50 flex min-h-screen flex-col items-center relative">
       <Navbar />
       {/* drawer */}
-      <VehicleDrawer openDrawer={openDrawer} closeDrawer={closeDrawer} />
+      <VehicleDrawer
+        openDrawer={openDrawer}
+        closeDrawer={closeDrawer}
+        vehicleData={filteredVehicleData}
+      />
 
       <div className="w-full max-w-[1440px] px-9 flex flex-col flex-1 pb-8 ">
         {/* top filters */}
