@@ -131,8 +131,8 @@ const VehicleDrawer = ({ openDrawer, closeDrawer, vehicleData }) => {
         <InfoRow label="Total Payments" value={vehicleData.paid || "0"} />
         <InfoRow label="Daily Rate" value={vehicleData.daily_rate || "N/A"} />
         <InfoRow label="Branch" value={vehicleData.branch_name || "N/A"} />
-        <InfoRow label="Teller" value={vehicleData.teller_name || "N/A"} />
         <InfoRow label="Parking Lot" value={vehicleData.lot || "N/A"} />
+        <InfoRow label="Teller" value={vehicleData.teller_name || "N/A"} />
 
         {/* Vehicle info */}
         <p className="pl-5 pt-6 pb-2 text-gray-500">VEHICLE INFO</p>
