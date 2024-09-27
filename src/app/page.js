@@ -1,7 +1,6 @@
 "use client";
 
 import { Supabase } from "/utils/supabase/client";
-import { IoIosArrowForward } from "react-icons/io";
 import BranchButton from "./components/BranchButton";
 import DateComponent from "./components/DateComponent";
 import Navbar from "./components/Navbar";
@@ -11,10 +10,6 @@ import Receivables from "./components/Receivables";
 import VehiclesInCustody from "./components/VehiclesInCustody";
 import CheckOuts from "./components/CheckOuts";
 import {
-  min,
-  max,
-  differenceInDays,
-  areIntervalsOverlapping,
   parse,
   subDays,
   isValid,
@@ -41,12 +36,12 @@ import {
   endOfYear,
   isSameYear,
   isWithinInterval,
-  subYears,
 } from "date-fns";
 import LatestPayments from "./components/LatestPayments";
 import VehiclesList from "./components/VehiclesList";
 import TellersLog from "./components/TellersLog";
 import AllPaymentsDrawer from "./components/AllPaymentsDrawer";
+import AllTellersLog from "./components/AllTellersLog";
 
 export default function Home() {
   const [startDate, setStartDate] = useState(new Date());
@@ -67,10 +62,16 @@ export default function Home() {
   const [tellersLog, setTellersLog] = useState([]);
   const [paymentsDrawer, setPaymentsDrawer] = useState([]);
   const [isPaymentsDrawerOpen, setIsPaymentsDrawerOpen] = useState(false);
+  const [allTellersLog, setAllTellersLog] = useState([]);
+  const [isTellersLogDrawerOpen, setIsTellersLogDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const togglePaymentsDrawer = () => {
     setIsPaymentsDrawerOpen(!isPaymentsDrawerOpen);
+  };
+
+  const toggleTellersLogDrawer = () => {
+    setIsTellersLogDrawerOpen(!isTellersLogDrawerOpen);
   };
 
   const handleDateChange = (date) => {
@@ -1011,8 +1012,19 @@ export default function Home() {
     }
   };
 
+  const fetchAllTellersLog = async () => {
+    try {
+      const { data, error } = await Supabase.rpc("get_all_tellers_log");
+      if (error) throw error;
+      setAllTellersLog(data);
+    } catch (error) {
+      console.error("Error fetching payments drawer data:", error);
+    }
+  };
+
   useEffect(() => {
     const fetchData = () => {
+      fetchAllTellersLog();
       fetchAllPaymentsDrawer();
       fetchVehiclesList();
       fetchTellersLog();
@@ -1049,6 +1061,11 @@ export default function Home() {
   return (
     <main className="bg-stone-50 w-full max-w-screen min-w-screen items-center">
       <Navbar />
+      <AllTellersLog
+        allTellersLog={allTellersLog}
+        isOpen={isTellersLogDrawerOpen}
+        onClose={() => setIsTellersLogDrawerOpen(false)}
+      />
       <AllPaymentsDrawer
         paymentsDrawer={paymentsDrawer}
         isOpen={isPaymentsDrawerOpen}
@@ -1106,21 +1123,11 @@ export default function Home() {
 
             {/* logs */}
             <div className="bg-white rounded-2xl border row-span-2 border-gray-200 pb-4">
-              <div className="p-4 flex justify-between border-b border-gray-200">
-                <div className="py-1 pl-2">
-                  <p className="font-medium">Logs</p>
-                  <p className="text-[0.68rem] text-gray-600">
-                    See latest log ins from branch tellers
-                  </p>
-                </div>
-                <button className="flex items-center text-blue-500 hover:text-blue-300 pr-1">
-                  <p className="text-xs font-semibold">More details</p>
-                  <IoIosArrowForward className="text-2xl ml-2" />
-                </button>
-              </div>
-
               {/* logs */}
-              <TellersLog tellersLog={tellersLog} />
+              <TellersLog
+                tellersLog={tellersLog}
+                onMoreDetails={toggleTellersLogDrawer}
+              />
             </div>
           </div>
         </div>
