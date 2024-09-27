@@ -27,40 +27,48 @@ const AllPaymentsDrawer = ({ paymentsDrawer, isOpen, onClose }) => {
         </p>
 
         <div className="overflow-x-auto p-4">
-          <table className="min-w-full text-left table-auto overflow-y-auto">
-            <thead>
-              <tr className="text-[0.8rem] text-gray-500 border-t text-center">
-                <th className="py-3 px-4 text-left font-normal">Owner</th>
-                <th className="py-3 px-4 font-normal">Vehicle</th>
-                <th className="py-3 px-4 font-normal">Amount</th>
-                <th className="py-3 px-4 font-normal">Method</th>
-                <th className="py-3 px-4 font-normal">Date of Payment</th>
-                <th className="py-3 px-4 font-normal">Reference Number</th>
-                <th className="py-3 px-4 font-normal">Branch</th>
-              </tr>
-            </thead>
-            <tbody className="text-xs text-center">
-              {paymentsDrawer.map((payment, index) => (
-                <tr key={index} className="hover:bg-gray-50 cursor-pointer">
-                  <td className="py-3 px-4 text-left">{payment.owner}</td>
-                  <td className="py-3 px-4">{payment.vehicle}</td>
-                  <td className="py-3 px-4">
-                    ₱
-                    {new Intl.NumberFormat("en-PH", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    }).format(payment.amount)}
-                  </td>
-                  <td className="py-3 px-4 first-letter:capitalize">
-                    {payment.method}
-                  </td>
-                  <td className="py-3 px-4">{payment.date_of_payment}</td>
-                  <td className="py-3 px-4">-</td>
-                  <td className="py-3 px-4">{payment.branch}</td>
+          <div className="max-h-[530px] overflow-y-auto">
+            <table className="min-w-full text-left table-auto">
+              <thead>
+                <tr className="text-[0.8rem] text-gray-500 border-t text-center">
+                  <th className="py-3 px-4 text-left font-normal">Owner</th>
+                  <th className="py-3 px-4 font-normal">Vehicle</th>
+                  <th className="py-3 px-4 font-normal">Amount</th>
+                  <th className="py-3 px-4 font-normal">Method</th>
+                  <th className="py-3 px-4 font-normal">Date of Payment</th>
+                  <th className="py-3 px-4 font-normal">Reference Number</th>
+                  <th className="py-3 px-4 font-normal">Branch</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="text-xs text-center">
+                {paymentsDrawer.map((payment, index) => (
+                  <tr key={index} className="hover:bg-gray-50 cursor-pointer">
+                    <td className="py-3 px-4 text-left">{payment.owner}</td>
+                    <td className="py-3 px-4">{payment.vehicle}</td>
+                    <td className="py-3 px-4">
+                      ₱
+                      {new Intl.NumberFormat("en-PH", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }).format(payment.amount)}
+                    </td>
+                    <td className="py-3 px-4 first-letter:capitalize">
+                      {payment.method}
+                    </td>
+                    <td className="py-3 px-4">
+                      {new Date(payment.date_of_payment).toLocaleDateString(
+                        "en-US",
+                        { year: "numeric", month: "long", day: "numeric" }
+                      )}
+                    </td>
+
+                    <td className="py-3 px-4">-</td>
+                    <td className="py-3 px-4">{payment.branch}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
